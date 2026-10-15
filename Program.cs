@@ -1,3 +1,6 @@
+using InboxIntelligence.Data;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -6,6 +9,14 @@ builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Registering dbcontext
+builder.Services.AddDbContext<InboxIntelligenceDbContext>(options =>
+{
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("InboxIntelligence"),
+        npgsqlOptions => npgsqlOptions.UseVector());
+});
 
 var app = builder.Build();
 
