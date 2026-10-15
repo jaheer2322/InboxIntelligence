@@ -20,9 +20,17 @@ namespace InboxIntelligence.Services
 
             if (emailDTOs.Count == 0) return 0;
 
-            var incomingIds = emailDTOs.Select(e => e.ExternalMessageId).ToList();
+            var incomingIds = emailDTOs.Select(e => e.ExternalMessageId)
+                                       .Where(id => !string.IsNullOrWhiteSpace(id))
+                                       .Distinct() // Avoids duplicate in same batch
+                                       .ToList();
+
             var existingIds = await _emailRepo.GetExistingMessageIdsAsync(incomingIds);
-            var newEmailDTOs = emails.Select(e => !existingIds.Contains(e.ExternalMessageId)).ToList();
+            var newEmailDTOs = emails.Where(e => 
+                                        !string.IsNullOrWhiteSpace(e.ExternalMessageId) &&
+                                        !existingIds.Contains(e.ExternalMessageId))
+                                     .DistinctBy(e => e.ExternalMessageId)
+                                     .ToList();
 
             if(newEmailDTOs.Count == 0) return 0;
 
