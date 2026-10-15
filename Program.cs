@@ -1,6 +1,8 @@
 using InboxIntelligence.Data;
 using Microsoft.EntityFrameworkCore;
 using InboxIntelligence.Mappings;
+using InboxIntelligence.Repositories;
+using InboxIntelligence.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,13 +13,17 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Registering dbcontext
+// Register dbcontext
 builder.Services.AddDbContext<InboxIntelligenceDbContext>(options =>
 {
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("InboxIntelligence"),
         npgsqlOptions => npgsqlOptions.UseVector());
 });
+
+// Register Service, Repositories
+builder.Services.AddScoped<IEmailRepository, EmailRepository>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // Mappings
 builder.Services.AddAutoMapper(

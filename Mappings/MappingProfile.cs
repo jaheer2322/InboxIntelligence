@@ -13,7 +13,7 @@ namespace InboxIntelligence.Mappings
                     opt => opt.MapFrom(src => src.Timestamp))
                 .ForMember(
                      dest => dest.Recipients,
-                     opt => opt.MapFrom(src => string.Join(" ,", src.Recipients)));
+                     opt => opt.MapFrom(src => string.Join(", ", src.Recipients)));
         }
     }
 }
