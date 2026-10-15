@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using InboxIntelligence.Mappings;
 using InboxIntelligence.Repositories;
 using InboxIntelligence.Services;
+using InboxIntelligence.Exceptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,7 +12,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+// Register global exception handler
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 
 // Register dbcontext
 builder.Services.AddDbContext<InboxIntelligenceDbContext>(options =>
@@ -31,6 +36,9 @@ builder.Services.AddAutoMapper(
     typeof(MappingProfile));
 
 var app = builder.Build();
+
+// Use exception handler
+app.UseExceptionHandler();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
