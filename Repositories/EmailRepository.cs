@@ -1,6 +1,5 @@
 ﻿using InboxIntelligence.Data;
 using InboxIntelligence.Models;
-using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InboxIntelligence.Repositories

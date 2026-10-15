@@ -1,5 +1,4 @@
 ﻿using InboxIntelligence.Models;
-using InboxIntelligence.Models.DTOs;
 
 namespace InboxIntelligence.Repositories
 {

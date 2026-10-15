@@ -1,5 +1,6 @@
 using InboxIntelligence.Data;
 using Microsoft.EntityFrameworkCore;
+using InboxIntelligence.Mappings;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,11 @@ builder.Services.AddDbContext<InboxIntelligenceDbContext>(options =>
         builder.Configuration.GetConnectionString("InboxIntelligence"),
         npgsqlOptions => npgsqlOptions.UseVector());
 });
+
+// Mappings
+builder.Services.AddAutoMapper(
+    cfg => { },
+    typeof(MappingProfile));
 
 var app = builder.Build();
 
