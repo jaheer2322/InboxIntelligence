@@ -33,7 +33,7 @@ namespace InboxIntelligence.Exceptions
             }
             else
             {
-                _logger.LogError(exception, "Request rejected", exception.Message);
+                _logger.LogWarning(exception, "Request rejected: {Message}", exception.Message);
             }
 
             httpContext.Response.StatusCode = statusCode;

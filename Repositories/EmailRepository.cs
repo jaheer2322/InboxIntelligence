@@ -24,8 +24,7 @@ namespace InboxIntelligence.Repositories
 
             var existingIds = await _dbContext.Emails
                 .AsNoTracking()
-                .Where(e => ids.Contains(e.ExternalMessageId))
-            //  similar to - WHERE ExternalMessageId IN (x, y, z);  
+                .Where(e => ids.Contains(e.ExternalMessageId)) //  similar to - WHERE ExternalMessageId IN (x, y, z);  
                 .Select(e => e.ExternalMessageId)
                 .ToListAsync();
 

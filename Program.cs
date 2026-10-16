@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
-
+builder.Services.AddSwaggerGen();
 builder.Services.AddEndpointsApiExplorer();
 
 // Register global exception handler

@@ -23,7 +23,7 @@ namespace InboxIntelligence.Services
             if (emailDTOs.Count == 0) return 0;
             
             if(emailDTOs.Any(e => string.IsNullOrWhiteSpace(e.ExternalMessageId)))
-                throw new BadRequestException("Every email must have external message id");
+                throw new BadRequestException("Every email must have an external message id");
 
             var incomingIds = emailDTOs.Select(e => e.ExternalMessageId)
                                        .Distinct() // Avoids duplicate in same batch
