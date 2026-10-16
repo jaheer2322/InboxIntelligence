@@ -5,6 +5,8 @@ VisualStudioVersion = 17.12.35514.174 d17.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InboxIntelligence", "InboxIntelligence.csproj", "{A0C1AD8D-67A9-4AF5-B6F4-5D70C17D952E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InboxIntelligence.Tests", "InboxIntelligence.Tests\InboxIntelligence.Tests.csproj", "{FB142C1E-A12E-41A6-8537-D17EF7A18332}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{A0C1AD8D-67A9-4AF5-B6F4-5D70C17D952E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A0C1AD8D-67A9-4AF5-B6F4-5D70C17D952E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A0C1AD8D-67A9-4AF5-B6F4-5D70C17D952E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB142C1E-A12E-41A6-8537-D17EF7A18332}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB142C1E-A12E-41A6-8537-D17EF7A18332}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB142C1E-A12E-41A6-8537-D17EF7A18332}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB142C1E-A12E-41A6-8537-D17EF7A18332}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
