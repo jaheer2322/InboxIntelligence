@@ -40,5 +40,19 @@ namespace InboxIntelligence.Repositories
             await _dbContext.Emails.AddRangeAsync(emailList);
             await _dbContext.SaveChangesAsync();
         }
+
+        public Task<List<Email>> GetEmailsPendingEmbeddingAsync(int batchSize)
+        {
+            return _dbContext.Emails.Where(e => e.Embedding == null)
+                                    .OrderBy(e => e.SentAt)
+                                    .Take(batchSize)
+                                    .ToListAsync();
+        }
+
+        public async Task SaveEmbeddingAsync(Email email, float[] embedding)
+        {
+            email.Embedding = new Pgvector.Vector(embedding);
+            await _dbContext.SaveChangesAsync();
+        }
     }
 }

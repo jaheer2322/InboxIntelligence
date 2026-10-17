@@ -14,14 +14,14 @@ namespace InboxIntelligence.Tests
         private EmailService _emailService = null!;
         private Mock<IEmailRepository> _emailRepoMock = null!;
         private Mock<IMapper> _mapperMock = null!;
-        private Mock<ILogger> _loggerMock = null!;
+        private Mock<ILogger<EmailService>> _loggerMock = null!;
 
         [TestInitialize]
         public void Setup()
         {
             _emailRepoMock = new Mock<IEmailRepository>();
             _mapperMock = new Mock<IMapper>();
-            _loggerMock = new Mock<ILogger>();
+            _loggerMock = new Mock<ILogger<EmailService>>();
             _emailService = new EmailService(_emailRepoMock.Object, _mapperMock.Object, _loggerMock.Object);
         }
 

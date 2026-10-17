@@ -13,6 +13,9 @@ var builder = WebApplication.CreateBuilder(args);
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
     .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .MinimumLevel.Override(
+    "Microsoft.EntityFrameworkCore.Database.Command",
+    LogEventLevel.Warning)
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .WriteTo.File(
@@ -39,6 +42,8 @@ builder.Services.AddHttpClient<IEmbeddingService, GeminiEmbeddingService>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+// Register BackgroundService (Embed queue)
+builder.Services.AddHostedService<EmbeddingBackgroundService>();
 
 // Register dbcontext
 builder.Services.AddDbContext<InboxIntelligenceDbContext>(options =>
