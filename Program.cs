@@ -8,10 +8,12 @@ using InboxIntelligence.Exceptions;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 builder.Services.AddEndpointsApiExplorer();
+
+// Register GeminiEmbeddingService for IEmbeddingService
+builder.Services.AddHttpClient<IEmbeddingService, GeminiEmbeddingService>();
 
 // Register global exception handler
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

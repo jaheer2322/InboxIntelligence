@@ -1,4 +1,6 @@
-﻿namespace InboxIntelligence.Models
+﻿using Pgvector;
+
+namespace InboxIntelligence.Models
 {
     public class Email
     {
@@ -10,5 +12,6 @@
         public string Recipients { get; set; } = string.Empty;
         public string Body { get; set; } = string.Empty;
         public DateTime SentAt { get; set; }
+        public Vector? Embedding { get; set; }
     }
 }
