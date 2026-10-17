@@ -14,6 +14,11 @@ namespace InboxIntelligence.Controllers
             _emailService = emailService;
         }
 
+        [HttpGet("smoke-test")]
+        public async Task<ActionResult> Get() {
+            return Ok(new { message = "Alive"});
+        }
+
         [HttpPost("bulk-import")]
         public async Task<ActionResult> BulkImportEmails([FromBody] List<BulkEmailImportDTO> emailDTOs)
         {

@@ -3,6 +3,7 @@ using InboxIntelligence.Models;
 using InboxIntelligence.Models.DTOs;
 using InboxIntelligence.Repositories;
 using InboxIntelligence.Services;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace InboxIntelligence.Tests
@@ -13,14 +14,15 @@ namespace InboxIntelligence.Tests
         private EmailService _emailService = null!;
         private Mock<IEmailRepository> _emailRepoMock = null!;
         private Mock<IMapper> _mapperMock = null!;
+        private Mock<ILogger> _loggerMock = null!;
 
         [TestInitialize]
         public void Setup()
         {
             _emailRepoMock = new Mock<IEmailRepository>();
             _mapperMock = new Mock<IMapper>();
-
-            _emailService = new EmailService(_emailRepoMock.Object, _mapperMock.Object);
+            _loggerMock = new Mock<ILogger>();
+            _emailService = new EmailService(_emailRepoMock.Object, _mapperMock.Object, _loggerMock.Object);
         }
 
         [TestMethod]
