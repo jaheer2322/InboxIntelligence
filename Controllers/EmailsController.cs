@@ -14,17 +14,27 @@ namespace InboxIntelligence.Controllers
             _emailService = emailService;
         }
 
-        [HttpGet("smoke-test")]
-        public async Task<ActionResult> Get() {
-            return Ok(new { message = "Alive"});
-        }
-
         [HttpPost("bulk-import")]
         public async Task<ActionResult> BulkImportEmails([FromBody] List<BulkEmailImportDTO> emailDTOs)
         {
             var importedCount = await _emailService.ImportEmailsAsync(emailDTOs);
-
+            if (importedCount == 0) return Ok(new { message = "Import skipped, all emails already exist" });
             return Ok(new { message = "Import successfull", importedCount });
+        }
+
+        [HttpPost("search")]
+        public async Task<ActionResult> SearchEmails([FromBody] EmailSearchRequestDTO request)
+        {
+            if(string.IsNullOrWhiteSpace(request.Query))
+            {
+                return BadRequest(new { Message = "Query can't be empty" });
+            }
+
+            var similarEmails = await _emailService.GetSimilarEmailsASync(request.Query);
+            
+            if (similarEmails.Count == 0) return Ok(new { Message = "Sorry! No relavant emails found!" });
+            
+            return Ok( new { similarEmails});   
         }
     }
 }

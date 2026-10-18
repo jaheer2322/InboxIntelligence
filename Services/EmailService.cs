@@ -9,14 +9,21 @@ namespace InboxIntelligence.Services
     public class EmailService : IEmailService
     {
         private readonly IEmailRepository _emailRepo;
+        private readonly IEmbeddingService _embeddingService;
         private readonly IMapper _mapper;
         private readonly ILogger<EmailService> _logger;
+        private int topK = 5;
 
-        public EmailService(IEmailRepository emailRepo, IMapper mapper, ILogger<EmailService> logger) { 
+        public EmailService(IEmailRepository emailRepo,
+                            IEmbeddingService embeddingService,
+                            IMapper mapper, 
+                            ILogger<EmailService> logger) { 
             _emailRepo = emailRepo;
+            _embeddingService = embeddingService;
             _mapper = mapper;
             _logger = logger;
         }
+
         public async Task<int> ImportEmailsAsync(IEnumerable<BulkEmailImportDTO> emails)
         {
             ArgumentNullException.ThrowIfNull(emails);
@@ -34,20 +41,20 @@ namespace InboxIntelligence.Services
                 return 0;
             }
             
-            if(emailDTOs.Any(e => string.IsNullOrWhiteSpace(e.ExternalMessageId)))
+            if(emailDTOs.Any(e => string.IsNullOrWhiteSpace(e.MessageId)))
             {
                 _logger.LogWarning(
                    "Email import rejected because an email has no external message ID.");
                 throw new BadRequestException("Every email must have an external message id");
             }
 
-            var incomingIds = emailDTOs.Select(e => e.ExternalMessageId)
+            var incomingIds = emailDTOs.Select(e => e.MessageId)
                                        .Distinct() // Avoids duplicate in same batch
                                        .ToList();
 
             var existingIds = await _emailRepo.GetExistingMessageIdsAsync(incomingIds);
-            var newEmailDTOs = emailDTOs.DistinctBy(e => e.ExternalMessageId)
-                                        .Where(e => !existingIds.Contains(e.ExternalMessageId))
+            var newEmailDTOs = emailDTOs.DistinctBy(e => e.MessageId)
+                                        .Where(e => !existingIds.Contains(e.MessageId))
                                         .ToList();
 
             var skippedCount = emailDTOs.Count - newEmailDTOs.Count;
@@ -72,6 +79,12 @@ namespace InboxIntelligence.Services
                 newEmails.Count);
 
             return newEmails.Count;
+        }
+        public async Task<List<EmailResponseDTO>> GetSimilarEmailsASync(string query)
+        {
+            var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(query);
+            var emails = await _emailRepo.GetSimilarEmailsAsync(queryEmbedding, topK);
+            return _mapper.Map<List<EmailResponseDTO>>(emails);
         }
     }
 }

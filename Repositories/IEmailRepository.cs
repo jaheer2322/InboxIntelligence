@@ -8,5 +8,6 @@ namespace InboxIntelligence.Repositories
         Task AddRangeAsync(IEnumerable<Email> emails);
         Task<List<Email>> GetEmailsPendingEmbeddingAsync(int batchSize);
         Task SaveEmbeddingAsync(Email email, float[] embedding);
+        Task<List<Email>> GetSimilarEmailsAsync(float[] queryEmbedding, int topK);
     }
 }

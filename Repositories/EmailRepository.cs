@@ -1,6 +1,8 @@
 ﻿using InboxIntelligence.Data;
 using InboxIntelligence.Models;
 using Microsoft.EntityFrameworkCore;
+using Pgvector;
+using Pgvector.EntityFrameworkCore;
 
 namespace InboxIntelligence.Repositories
 {
@@ -53,6 +55,18 @@ namespace InboxIntelligence.Repositories
         {
             email.Embedding = new Pgvector.Vector(embedding);
             await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task<List<Email>> GetSimilarEmailsAsync(float[] queryEmbedding, int topK)
+        {
+            var vector = new Vector(queryEmbedding);
+            var result = await _dbContext.Emails.AsNoTracking()
+                                          .Where(e => e.Embedding != null)
+                                          .OrderBy(e => e.Embedding!.CosineDistance(vector))
+                                          .Take(topK)
+                                          .ToListAsync();
+
+            return result;
         }
     }
 }

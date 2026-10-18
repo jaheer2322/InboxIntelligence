@@ -13,6 +13,7 @@ namespace InboxIntelligence.Tests
     {
         private EmailService _emailService = null!;
         private Mock<IEmailRepository> _emailRepoMock = null!;
+        private Mock<IEmbeddingService> _embeddingServiceMock = null!;
         private Mock<IMapper> _mapperMock = null!;
         private Mock<ILogger<EmailService>> _loggerMock = null!;
 
@@ -20,9 +21,13 @@ namespace InboxIntelligence.Tests
         public void Setup()
         {
             _emailRepoMock = new Mock<IEmailRepository>();
+            _embeddingServiceMock = new Mock<IEmbeddingService>();
             _mapperMock = new Mock<IMapper>();
             _loggerMock = new Mock<ILogger<EmailService>>();
-            _emailService = new EmailService(_emailRepoMock.Object, _mapperMock.Object, _loggerMock.Object);
+            _emailService = new EmailService(_emailRepoMock.Object, 
+                                             _embeddingServiceMock.Object,
+                                             _mapperMock.Object, 
+                                             _loggerMock.Object);
         }
 
         [TestMethod]
@@ -31,7 +36,7 @@ namespace InboxIntelligence.Tests
             // Arrange
             var emails = new List<BulkEmailImportDTO> { new ()
                 {
-                    ExternalMessageId = "email-001",
+                    MessageId = "email-001",
                     ConversationId = "conversation-001",
                     Subject = "Project kickoff",
                     Sender = "alice@example.com",
@@ -62,7 +67,7 @@ namespace InboxIntelligence.Tests
             // Arrange
             var emails = new List<BulkEmailImportDTO>() {
                 new(){
-                    ExternalMessageId = "email-new-001",
+                    MessageId = "email-new-001",
                     ConversationId = "conversation-002",
                     Subject = "New project update",
                     Sender = "alice@example.com",
@@ -77,7 +82,7 @@ namespace InboxIntelligence.Tests
             _mapperMock.Setup(mapper => mapper.Map<List<Email>>(It.IsAny<IEnumerable<BulkEmailImportDTO>>()))
                       .Returns((IEnumerable<BulkEmailImportDTO> source) => 
                             source.Select(dto => new Email {
-                                ExternalMessageId = dto.ExternalMessageId,
+                                ExternalMessageId = dto.MessageId,
                                 ConversationId = dto.ConversationId,
                                 Subject = dto.Subject,
                                 Sender = dto.Sender,
@@ -106,7 +111,7 @@ namespace InboxIntelligence.Tests
             // Arrange
             var email = new BulkEmailImportDTO
             {
-                ExternalMessageId = "email-003",
+                MessageId = "email-003",
                 ConversationId = "conversation-003",
                 Subject = "Project update",
                 Sender = "alice@example.com",
@@ -132,7 +137,7 @@ namespace InboxIntelligence.Tests
                 .Returns((IEnumerable<BulkEmailImportDTO> source) =>
                     source.Select(dto => new Email
                     {
-                        ExternalMessageId = dto.ExternalMessageId,
+                        ExternalMessageId = dto.MessageId,
                         ConversationId = dto.ConversationId,
                         Subject = dto.Subject,
                         Sender = dto.Sender,
@@ -163,7 +168,7 @@ namespace InboxIntelligence.Tests
             {
                 new()
                 {
-                    ExternalMessageId = "",
+                    MessageId = "",
                     Subject = "Invalid email"
                 }
             };

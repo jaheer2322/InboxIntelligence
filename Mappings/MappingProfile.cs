@@ -9,11 +9,15 @@ namespace InboxIntelligence.Mappings
         public MappingProfile() {
             CreateMap<BulkEmailImportDTO, Email>()
                 .ForMember(
+                    dest => dest.ExternalMessageId,
+                    opt => opt.MapFrom(src => src.MessageId))
+                .ForMember(
                     dest => dest.SentAt,
                     opt => opt.MapFrom(src => src.Timestamp))
                 .ForMember(
                      dest => dest.Recipients,
                      opt => opt.MapFrom(src => string.Join(", ", src.Recipients)));
+            CreateMap<Email, EmailResponseDTO>();
         }
     }
 }
