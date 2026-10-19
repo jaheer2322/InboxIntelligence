@@ -18,7 +18,6 @@ namespace InboxIntelligence.Controllers
         public async Task<ActionResult> BulkImportEmails([FromBody] List<BulkEmailImportDTO> emailDTOs)
         {
             var importedCount = await _emailService.ImportEmailsAsync(emailDTOs);
-            if (importedCount == 0) return Ok(new { message = "Import skipped, all emails already exist" });
             return Ok(new { message = "Import successfull", importedCount });
         }
 
@@ -30,7 +29,7 @@ namespace InboxIntelligence.Controllers
                 return BadRequest(new { Message = "Query can't be empty" });
             }
 
-            var similarEmails = await _emailService.GetSimilarEmailsASync(request.Query);
+            var similarEmails = await _emailService.GetSimilarEmailsAsync(request.Query);
             
             if (similarEmails.Count == 0) return Ok(new { Message = "Sorry! No relavant emails found!" });
             

@@ -45,7 +45,7 @@ namespace InboxIntelligence.Repositories
 
         public Task<List<Email>> GetEmailsPendingEmbeddingAsync(int batchSize)
         {
-            return _dbContext.Emails.Where(e => e.Embedding == null)
+            return _dbContext.Emails.Where(e => e.Embedding == null && e.EmbeddingFailureCount < 3)
                                     .OrderBy(e => e.SentAt)
                                     .Take(batchSize)
                                     .ToListAsync();
@@ -67,6 +67,12 @@ namespace InboxIntelligence.Repositories
                                           .ToListAsync();
 
             return result;
+        }
+
+        public async Task IncrementEmbeddingFailureCountAsync(Email email)
+        {
+            email.EmbeddingFailureCount++;
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

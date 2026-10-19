@@ -12,7 +12,7 @@ namespace InboxIntelligence.Services
         private readonly IEmbeddingService _embeddingService;
         private readonly IMapper _mapper;
         private readonly ILogger<EmailService> _logger;
-        private int topK = 5;
+        private const int DefaultTopK = 5;
 
         public EmailService(IEmailRepository emailRepo,
                             IEmbeddingService embeddingService,
@@ -80,10 +80,10 @@ namespace InboxIntelligence.Services
 
             return newEmails.Count;
         }
-        public async Task<List<EmailResponseDTO>> GetSimilarEmailsASync(string query)
+        public async Task<List<EmailResponseDTO>> GetSimilarEmailsAsync(string query)
         {
             var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(query);
-            var emails = await _emailRepo.GetSimilarEmailsAsync(queryEmbedding, topK);
+            var emails = await _emailRepo.GetSimilarEmailsAsync(queryEmbedding, DefaultTopK);
             return _mapper.Map<List<EmailResponseDTO>>(emails);
         }
     }

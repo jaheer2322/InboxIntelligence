@@ -70,15 +70,23 @@ namespace InboxIntelligence.Services
                         }
                         catch (Exception ex)
                         {
+                            await repository.IncrementEmbeddingFailureCountAsync(email);
+
                             _logger.LogError(
                                 ex,
-                                "Failed to generate embedding for email {EmailId}.",
-                                email.Id);
+                                "Failed to generate embedding for email {EmailId}, failure count: {count}.",
+                                email.Id, email.EmbeddingFailureCount);
 
-                            // Give the API some breathing room after a failure.
-                            await Task.Delay(
-                                TimeSpan.FromSeconds(30),
-                                stoppingToken);
+                            if (email.EmbeddingFailureCount >= 3)
+                            {
+                                _logger.LogWarning(
+                                    "Email {EmailId} reached the maximum embedding failure count and will be skipped automatically.",
+                                    email.Id);
+                            }
+                            else
+                            {
+                                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                            }
                         }
 
                         // Space out consecutive API calls.

@@ -13,5 +13,6 @@ namespace InboxIntelligence.Models
         public string Body { get; set; } = string.Empty;
         public DateTime SentAt { get; set; }
         public Vector? Embedding { get; set; }
+        public int EmbeddingFailureCount { get; set; } = 0;
     }
 }

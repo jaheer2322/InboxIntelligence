@@ -41,6 +41,9 @@ namespace InboxIntelligence.Migrations
                     b.Property<Vector>("Embedding")
                         .HasColumnType("vector(768)");
 
+                    b.Property<int>("EmbeddingFailureCount")
+                        .HasColumnType("integer");
+
                     b.Property<string>("ExternalMessageId")
                         .IsRequired()
                         .HasMaxLength(100)
