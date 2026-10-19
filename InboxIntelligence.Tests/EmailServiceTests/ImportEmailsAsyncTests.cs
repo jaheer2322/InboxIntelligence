@@ -6,10 +6,10 @@ using InboxIntelligence.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace InboxIntelligence.Tests
+namespace InboxIntelligence.Tests.EmailServiceTests
 {
     [TestClass]
-    public class EmailServiceTests
+    public class ImportEmailsAsyncTests
     {
         private EmailService _emailService = null!;
         private Mock<IEmailRepository> _emailRepoMock = null!;
@@ -24,9 +24,9 @@ namespace InboxIntelligence.Tests
             _embeddingServiceMock = new Mock<IEmbeddingService>();
             _mapperMock = new Mock<IMapper>();
             _loggerMock = new Mock<ILogger<EmailService>>();
-            _emailService = new EmailService(_emailRepoMock.Object, 
+            _emailService = new EmailService(_emailRepoMock.Object,
                                              _embeddingServiceMock.Object,
-                                             _mapperMock.Object, 
+                                             _mapperMock.Object,
                                              _loggerMock.Object);
         }
 
@@ -43,7 +43,7 @@ namespace InboxIntelligence.Tests
                     Recipients = ["jaheer@example.com"],
                     Body = "Project kickoff meeting is on Monday.",
                     Timestamp = DateTime.Parse("2026-10-12T10:00:00Z")
-                } 
+                }
             };
 
             _emailRepoMock.Setup(repo => repo.GetExistingMessageIdsAsync(It.IsAny<IEnumerable<string>>()))
@@ -57,7 +57,7 @@ namespace InboxIntelligence.Tests
 
             _emailRepoMock.Verify(
                 repo => repo.AddRangeAsync(It.IsAny<IEnumerable<Email>>()),
-                Times.Never               
+                Times.Never
                 );
         }
 
@@ -80,8 +80,9 @@ namespace InboxIntelligence.Tests
             _emailRepoMock.Setup(repo => repo.GetExistingMessageIdsAsync(It.IsAny<IEnumerable<string>>()))
                       .ReturnsAsync(new HashSet<string>());
             _mapperMock.Setup(mapper => mapper.Map<List<Email>>(It.IsAny<IEnumerable<BulkEmailImportDTO>>()))
-                      .Returns((IEnumerable<BulkEmailImportDTO> source) => 
-                            source.Select(dto => new Email {
+                      .Returns((IEnumerable<BulkEmailImportDTO> source) =>
+                            source.Select(dto => new Email
+                            {
                                 ExternalMessageId = dto.MessageId,
                                 ConversationId = dto.ConversationId,
                                 Subject = dto.Subject,
@@ -174,7 +175,7 @@ namespace InboxIntelligence.Tests
             };
 
             // Act & Assert
-            await Assert.ThrowsExactlyAsync<InboxIntelligence.Exceptions.BadRequestException>(
+            await Assert.ThrowsExactlyAsync<Exceptions.BadRequestException>(
                 () => _emailService.ImportEmailsAsync(emails));
 
             _emailRepoMock.Verify(
@@ -184,7 +185,7 @@ namespace InboxIntelligence.Tests
 
             _emailRepoMock.Verify(
                 repo => repo.AddRangeAsync(
-                    It.IsAny<IEnumerable<InboxIntelligence.Models.Email>>()),
+                    It.IsAny<IEnumerable<Email>>()),
                 Times.Never);
         }
 
@@ -208,7 +209,7 @@ namespace InboxIntelligence.Tests
 
             _emailRepoMock.Verify(
                 repo => repo.AddRangeAsync(
-                    It.IsAny<IEnumerable<InboxIntelligence.Models.Email>>()),
+                    It.IsAny<IEnumerable<Email>>()),
                 Times.Never);
         }
 
