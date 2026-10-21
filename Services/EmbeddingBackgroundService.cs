@@ -1,4 +1,5 @@
 ﻿
+using InboxIntelligence.Models;
 using InboxIntelligence.Repositories;
 using Microsoft.Extensions.Logging;
 
@@ -16,6 +17,42 @@ namespace InboxIntelligence.Services
         {
             _scopeFactory = scopeFactory;
             _logger = logger;
+        }
+        public async Task ProcessEmailAsync(
+            Email email,
+            IEmailRepository repository,
+            IEmbeddingService embeddingService,
+            CancellationToken stoppingToken)
+        {
+            try
+            {
+                var text = $"Subject: {email.Subject}\n\n{email.Body}";
+
+                var embedding = await embeddingService.GenerateEmbeddingAsync(
+                    text,
+                    stoppingToken);
+
+                await repository.SaveEmbeddingAsync(email, embedding);
+
+                _logger.LogInformation(
+                    "Embedding generated for email {EmailId}.",
+                    email.Id);
+            }
+            catch (OperationCanceledException)
+                when (stoppingToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await repository.IncrementEmbeddingFailureCountAsync(email);
+
+                _logger.LogError(
+                    ex,
+                    "Failed to generate embedding for email {EmailId}, failure count: {Count}.",
+                    email.Id,
+                    email.EmbeddingFailureCount);
+            }
         }
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -46,50 +83,22 @@ namespace InboxIntelligence.Services
                     {
                         stoppingToken.ThrowIfCancellationRequested();
 
-                        try
+                        var previousFailureCount = email.EmbeddingFailureCount;
+
+                        await ProcessEmailAsync(
+                            email,
+                            repository,
+                            embeddingService,
+                            stoppingToken);
+
+                        if (email.EmbeddingFailureCount > previousFailureCount &&
+                            email.EmbeddingFailureCount < 3)
                         {
-                            var text = $"Subject: {email.Subject}\n\n{email.Body}";
-
-                            var embedding =
-                                await embeddingService.GenerateEmbeddingAsync(
-                                    text,
-                                    stoppingToken);
-
-                            await repository.SaveEmbeddingAsync(
-                                email,
-                                embedding);
-
-                            _logger.LogInformation(
-                                "Embedding generated for email {EmailId}.",
-                                email.Id);
-                        }
-                        catch (OperationCanceledException)
-                            when (stoppingToken.IsCancellationRequested)
-                        {
-                            throw;
-                        }
-                        catch (Exception ex)
-                        {
-                            await repository.IncrementEmbeddingFailureCountAsync(email);
-
-                            _logger.LogError(
-                                ex,
-                                "Failed to generate embedding for email {EmailId}, failure count: {count}.",
-                                email.Id, email.EmbeddingFailureCount);
-
-                            if (email.EmbeddingFailureCount >= 3)
-                            {
-                                _logger.LogWarning(
-                                    "Email {EmailId} reached the maximum embedding failure count and will be skipped automatically.",
-                                    email.Id);
-                            }
-                            else
-                            {
-                                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
-                            }
+                            await Task.Delay(
+                                TimeSpan.FromSeconds(10),
+                                stoppingToken);
                         }
 
-                        // Space out consecutive API calls.
                         await Task.Delay(ApiDelay, stoppingToken);
                     }
 
