@@ -82,9 +82,64 @@ namespace InboxIntelligence.Services
         }
         public async Task<List<EmailResponseDTO>> GetSimilarEmailsAsync(string query)
         {
+            const int topK = 5;
+            const int rrfK = 60;
+
             var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(query);
-            var emails = await _emailRepo.GetSimilarEmailsAsync(queryEmbedding, DefaultTopK);
-            return _mapper.Map<List<EmailResponseDTO>>(emails);
+
+            var semanticResults = await _emailRepo.GetSimilarEmailsAsync(
+                queryEmbedding,
+                topK);
+
+            var keywordResults = await _emailRepo.GetEmailsByKeywordAsync(
+                query,
+                topK);
+
+            var rrfScores = new Dictionary<Guid, double>();
+
+            void AddScores(List<Email> results)
+            {
+                for (var i = 0; i < results.Count; i++)
+                {
+                    var email = results[i];
+                    var rank = i + 1;
+
+                    rrfScores[email.Id] =
+                        rrfScores.GetValueOrDefault(email.Id) +
+                        1.0 / (rrfK + rank);
+                }
+            }
+
+            AddScores(semanticResults);
+            AddScores(keywordResults);
+
+            var emailsById = semanticResults
+                .Concat(keywordResults)
+                .DistinctBy(email => email.Id)
+                .ToDictionary(email => email.Id);
+
+            var rankedEmails = rrfScores
+                .OrderByDescending(entry => entry.Value)
+                .Select(entry => emailsById[entry.Key])
+                .ToList();
+
+            _logger.LogInformation(
+                "Semantic results: {EmailIds}",
+                string.Join(", ", semanticResults.Select(e => e.ExternalMessageId)));
+
+            _logger.LogInformation(
+                "Keyword results: {EmailIds}",
+                string.Join(", ", keywordResults.Select(e => e.ExternalMessageId)));
+
+            foreach (var entry in rrfScores.OrderByDescending(e => e.Value))
+            {
+                _logger.LogInformation(
+                    "Email {EmailId} received RRF score {RrfScore}",
+                    entry.Key,
+                    entry.Value);
+            }
+
+            return _mapper.Map<List<EmailResponseDTO>>(rankedEmails);
         }
     }
 }

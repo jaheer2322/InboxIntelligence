@@ -10,5 +10,6 @@ namespace InboxIntelligence.Repositories
         Task SaveEmbeddingAsync(Email email, float[] embedding);
         Task IncrementEmbeddingFailureCountAsync(Email email);
         Task<List<Email>> GetSimilarEmailsAsync(float[] queryEmbedding, int topK);
+        Task<List<Email>> GetEmailsByKeywordAsync(string query, int topK);
     }
 }

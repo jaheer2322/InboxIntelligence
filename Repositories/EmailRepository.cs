@@ -8,10 +8,11 @@ namespace InboxIntelligence.Repositories
 {
     public class EmailRepository : IEmailRepository
     {
-        private readonly InboxIntelligenceDbContext _dbContext;
-        public EmailRepository(InboxIntelligenceDbContext dbContext)
+        private readonly InboxIntelligenceDbContext _dbContext; ILogger<EmailRepository> _logger;
+        public EmailRepository(InboxIntelligenceDbContext dbContext, ILogger<EmailRepository> logger)
         {
             _dbContext = dbContext;
+            _logger = logger;
         }
 
         public async Task<HashSet<string>> GetExistingMessageIdsAsync(IEnumerable<string> messageIds)
@@ -42,7 +43,6 @@ namespace InboxIntelligence.Repositories
             await _dbContext.Emails.AddRangeAsync(emailList);
             await _dbContext.SaveChangesAsync();
         }
-
         public Task<List<Email>> GetEmailsPendingEmbeddingAsync(int batchSize)
         {
             return _dbContext.Emails.Where(e => e.Embedding == null && e.EmbeddingFailureCount < 3)
@@ -69,10 +69,39 @@ namespace InboxIntelligence.Repositories
             return result;
         }
 
+        public async Task<List<Email>> GetEmailsByKeywordAsync(
+            string query,
+            int topK)
+        {
+            var queryText = string.Join(
+                " | ",
+                query.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+            var keywordQuery = _dbContext.Emails
+                .AsNoTracking()
+                .Where(e => EF.Functions
+                    .ToTsVector("english", e.Subject + " " + e.Body)
+                    .Matches(EF.Functions.ToTsQuery("english", queryText)))
+                .OrderByDescending(e => EF.Functions
+                    .ToTsVector("english", e.Subject + " " + e.Body)
+                    .Rank(EF.Functions.ToTsQuery("english", queryText)))
+                .Take(topK);
+
+            _logger.LogInformation("Keyword query text: {QueryText}", queryText);
+            _logger.LogInformation("Keyword SQL: {Sql}", keywordQuery.ToQueryString());
+
+            var results = await keywordQuery.ToListAsync();
+
+            _logger.LogInformation("Keyword result count: {Count}", results.Count);
+
+            return results;
+        }
+
         public async Task IncrementEmbeddingFailureCountAsync(Email email)
         {
             email.EmbeddingFailureCount++;
             await _dbContext.SaveChangesAsync();
         }
+
     }
 }
