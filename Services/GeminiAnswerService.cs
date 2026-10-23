@@ -32,7 +32,7 @@ namespace InboxIntelligence.Services
                     "Gemini API key is not configured.");
             }
 
-            const string model = "gemini-2.5-flash";
+            const string model = "gemini-3.5-flash";
 
             var url =
                 $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent";

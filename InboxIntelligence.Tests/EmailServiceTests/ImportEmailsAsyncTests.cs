@@ -14,6 +14,7 @@ namespace InboxIntelligence.Tests.EmailServiceTests
         private EmailService _emailService = null!;
         private Mock<IEmailRepository> _emailRepoMock = null!;
         private Mock<IEmbeddingService> _embeddingServiceMock = null!;
+        private Mock<IGeminiAnswerService> _emailServiceMock = null!;
         private Mock<IMapper> _mapperMock = null!;
         private Mock<ILogger<EmailService>> _loggerMock = null!;
 
@@ -22,10 +23,12 @@ namespace InboxIntelligence.Tests.EmailServiceTests
         {
             _emailRepoMock = new Mock<IEmailRepository>();
             _embeddingServiceMock = new Mock<IEmbeddingService>();
+            _emailServiceMock = new Mock<IGeminiAnswerService>();
             _mapperMock = new Mock<IMapper>();
             _loggerMock = new Mock<ILogger<EmailService>>();
             _emailService = new EmailService(_emailRepoMock.Object,
                                              _embeddingServiceMock.Object,
+                                             _emailServiceMock.Object,
                                              _mapperMock.Object,
                                              _loggerMock.Object);
         }

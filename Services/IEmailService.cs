@@ -9,9 +9,15 @@ namespace InboxIntelligence.Services
                                         string query,
                                         DateTime? startDate,
                                         DateTime? endDate);
-        Task<List<EmailResponseDTO>> GetConversationEmailsAsync(string conversationId, 
-                                                                DateTime? startDate,
-                                                                DateTime? endDate,
-                                                                int limit);
+        Task<List<EmailResponseDTO>> GetConversationEmailsAsync(
+                                        string conversationId, 
+                                        DateTime? startDate,
+                                        DateTime? endDate,
+                                        int limit);
+        Task<string> AskAsync(
+                        string query,
+                        DateTime? startDate,
+                        DateTime? endDate,
+                        CancellationToken cancellationToken = default);
     }
 }

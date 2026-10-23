@@ -10,18 +10,48 @@ namespace InboxIntelligence.Services
     {
         private readonly IEmailRepository _emailRepo;
         private readonly IEmbeddingService _embeddingService;
+        private readonly IGeminiAnswerService _answerService;
         private readonly IMapper _mapper;
         private readonly ILogger<EmailService> _logger;
         private const int DefaultTopK = 5;
 
         public EmailService(IEmailRepository emailRepo,
                             IEmbeddingService embeddingService,
+                            IGeminiAnswerService gAnswerService,
                             IMapper mapper, 
                             ILogger<EmailService> logger) { 
             _emailRepo = emailRepo;
             _embeddingService = embeddingService;
+            _answerService = gAnswerService;
             _mapper = mapper;
             _logger = logger;
+        }
+
+        public async Task<string> AskAsync(
+                                    string query,
+                                    DateTime? startDate,
+                                    DateTime? endDate,
+                                    CancellationToken cancellationToken = default)
+        {
+            var emails = await GetSimilarEmailsAsync(query, startDate, endDate);
+            
+            if (emails.Count == 0)
+                return "I couldn't find relevant emails to answer this question.";
+
+            var emailContext = string.Join(
+                "\n\n--- EMAIL ---\n\n",
+                emails.Select(e => $"""
+                    ExternalMessageId: {e.ExternalMessageId}
+                    ConversationId: {e.ConversationId}
+                    Subject: {e.Subject}
+                    Sender: {e.Sender}
+                    SentAt: {e.SentAt:O}
+                    Body:
+                    {e.Body}
+                    """));
+
+            return await _answerService.GenerateAnswerAsync(
+                query, emailContext, cancellationToken);
         }
 
         public async Task<int> ImportEmailsAsync(IEnumerable<BulkEmailImportDTO> emails)

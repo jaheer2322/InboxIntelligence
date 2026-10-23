@@ -30,4 +30,9 @@
     </ItemGroup>
 
 
+    <ItemGroup>
+      <Folder Include="frontend\" />
+    </ItemGroup>
+
+
 </Project>

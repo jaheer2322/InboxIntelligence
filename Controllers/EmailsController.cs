@@ -14,6 +14,31 @@ namespace InboxIntelligence.Controllers
             _emailService = emailService;
         }
 
+        [HttpPost("ask")]
+        public async Task<IActionResult> Ask(
+                                            [FromBody] EmailSearchRequestDTO request,
+                                            [FromQuery] DateTime? startDate,
+                                            [FromQuery] DateTime? endDate,
+                                            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(request.Query))
+                return BadRequest(new { Message = "Query can't be empty" });
+
+            if (startDate.HasValue && endDate.HasValue &&
+                startDate.Value > endDate.Value)
+            {
+                return BadRequest(new
+                {
+                    Message = "startDate must be earlier than or equal to endDate."
+                });
+            }
+
+            var answer = await _emailService.AskAsync(
+                request.Query, startDate, endDate, cancellationToken);
+
+            return Ok(new { answer });
+        }
+
         [HttpPost("bulk-import")]
         public async Task<ActionResult> BulkImportEmails([FromBody] List<BulkEmailImportDTO> emailDTOs)
         {
