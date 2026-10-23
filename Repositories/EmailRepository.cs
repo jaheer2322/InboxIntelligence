@@ -3,7 +3,6 @@ using InboxIntelligence.Models;
 using Microsoft.EntityFrameworkCore;
 using Pgvector;
 using Pgvector.EntityFrameworkCore;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace InboxIntelligence.Repositories
 {

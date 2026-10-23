@@ -27,7 +27,6 @@ Log.Logger = new LoggerConfiguration()
         outputTemplate:
             "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
     .CreateLogger();
-
 builder.Host.UseSerilog();
 
 // Add services to the container.
@@ -37,6 +36,9 @@ builder.Services.AddEndpointsApiExplorer();
 
 // Register GeminiEmbeddingService for IEmbeddingService
 builder.Services.AddHttpClient<IEmbeddingService, GeminiEmbeddingService>();
+
+// Register GeminiAnswerService for IGeminiAnswerService
+builder.Services.AddHttpClient<IGeminiAnswerService, GeminiAnswerService>();
 
 // Register global exception handler
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

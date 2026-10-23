@@ -32,6 +32,12 @@ namespace InboxIntelligence.Controllers
                 return BadRequest(new { Message = "Query can't be empty" });
             }
 
+            if (startDate.HasValue && endDate.HasValue &&
+                startDate.Value > endDate.Value)
+            {
+                return BadRequest(new { Message = "startDate must be earlier than or equal to endDate." });
+            }
+
             var similarEmails = await _emailService.GetSimilarEmailsAsync(request.Query, startDate, endDate);
             
             if (similarEmails.Count == 0) return Ok(new { Message = "Sorry! No relavant emails found!" });
