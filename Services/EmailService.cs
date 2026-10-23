@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using InboxIntelligence.Exceptions;
 using InboxIntelligence.Models;
 using InboxIntelligence.Models.DTOs;
@@ -10,16 +10,21 @@ namespace InboxIntelligence.Services
     {
         private readonly IEmailRepository _emailRepo;
         private readonly IEmbeddingService _embeddingService;
+        private readonly IGeminiAnswerService _geminiAnswerService;
         private readonly IMapper _mapper;
         private readonly ILogger<EmailService> _logger;
         private const int DefaultTopK = 5;
 
-        public EmailService(IEmailRepository emailRepo,
-                            IEmbeddingService embeddingService,
-                            IMapper mapper, 
-                            ILogger<EmailService> logger) { 
+        public EmailService(
+            IEmailRepository emailRepo,
+            IEmbeddingService embeddingService,
+            IGeminiAnswerService geminiAnswerService,
+            IMapper mapper,
+            ILogger<EmailService> logger)
+        {
             _emailRepo = emailRepo;
             _embeddingService = embeddingService;
+            _geminiAnswerService = geminiAnswerService;
             _mapper = mapper;
             _logger = logger;
         }
@@ -27,29 +32,28 @@ namespace InboxIntelligence.Services
         public async Task<int> ImportEmailsAsync(IEnumerable<BulkEmailImportDTO> emails)
         {
             ArgumentNullException.ThrowIfNull(emails);
-            
+
             var emailDTOs = emails.ToList();
-            
+
             _logger.LogInformation(
                 "Email import started. Received {ReceivedCount} emails.",
                 emailDTOs.Count);
 
             if (emailDTOs.Count == 0)
             {
-                _logger.LogInformation(
-                    "Email import completed. Batch was empty.");
+                _logger.LogInformation("Email import completed. Batch was empty.");
                 return 0;
             }
-            
-            if(emailDTOs.Any(e => string.IsNullOrWhiteSpace(e.MessageId)))
+
+            if (emailDTOs.Any(e => string.IsNullOrWhiteSpace(e.MessageId)))
             {
                 _logger.LogWarning(
-                   "Email import rejected because an email has no external message ID.");
+                    "Email import rejected because an email has no external message ID.");
                 throw new BadRequestException("Every email must have an external message id");
             }
 
             var incomingIds = emailDTOs.Select(e => e.MessageId)
-                                       .Distinct() // Avoids duplicate in same batch
+                                       .Distinct()
                                        .ToList();
 
             var existingIds = await _emailRepo.GetExistingMessageIdsAsync(incomingIds);
@@ -60,9 +64,7 @@ namespace InboxIntelligence.Services
             var skippedCount = emailDTOs.Count - newEmailDTOs.Count;
 
             _logger.LogInformation(
-                "Email import deduplication completed. " +
-                "Received {ReceivedCount}, unique IDs {UniqueIdCount}, " +
-                "skipped {SkippedCount}.",
+                "Email import deduplication completed. Received {ReceivedCount}, unique IDs {UniqueIdCount}, skipped {SkippedCount}.",
                 emailDTOs.Count,
                 incomingIds.Count,
                 skippedCount);
@@ -70,17 +72,19 @@ namespace InboxIntelligence.Services
             if (newEmailDTOs.Count == 0) return 0;
 
             var newEmails = _mapper.Map<List<Email>>(newEmailDTOs);
-
             await _emailRepo.AddRangeAsync(newEmails);
 
             _logger.LogInformation(
-                "Email import completed successfully. " +
-                "Imported {ImportedCount} emails.",
+                "Email import completed successfully. Imported {ImportedCount} emails.",
                 newEmails.Count);
 
             return newEmails.Count;
         }
-        public async Task<List<EmailResponseDTO>> GetSimilarEmailsAsync(string query, DateTime? startDate, DateTime? endDate)
+
+        public async Task<List<EmailResponseDTO>> GetSimilarEmailsAsync(
+            string query,
+            DateTime? startDate,
+            DateTime? endDate)
         {
             const int topK = 5;
             const int rrfK = 60;
@@ -88,26 +92,16 @@ namespace InboxIntelligence.Services
             var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(query);
 
             if (startDate.HasValue)
-            {
-                startDate = DateTime.SpecifyKind(
-                    startDate.Value, DateTimeKind.Utc);
-            }
+                startDate = DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc);
 
             if (endDate.HasValue)
-            {
-                endDate = DateTime.SpecifyKind(
-                    endDate.Value, DateTimeKind.Utc);
-            }
+                endDate = DateTime.SpecifyKind(endDate.Value, DateTimeKind.Utc);
 
             var semanticResults = await _emailRepo.GetSimilarEmailsAsync(
-                queryEmbedding,
-                startDate, endDate,
-                topK);
+                queryEmbedding, startDate, endDate, topK);
 
             var keywordResults = await _emailRepo.GetEmailsByKeywordAsync(
-                query,
-                startDate, endDate,
-                topK);
+                query, startDate, endDate, topK);
 
             var rrfScores = new Dictionary<Guid, double>();
 
@@ -116,11 +110,8 @@ namespace InboxIntelligence.Services
                 for (var i = 0; i < results.Count; i++)
                 {
                     var email = results[i];
-                    var rank = i + 1;
-
                     rrfScores[email.Id] =
-                        rrfScores.GetValueOrDefault(email.Id) +
-                        1.0 / (rrfK + rank);
+                        rrfScores.GetValueOrDefault(email.Id) + 1.0 / (rrfK + i + 1);
                 }
             }
 
@@ -156,12 +147,47 @@ namespace InboxIntelligence.Services
             return _mapper.Map<List<EmailResponseDTO>>(rankedEmails);
         }
 
-        public async Task<List<EmailResponseDTO>> GetConversationEmailsAsync(string conversationId, 
-                                                                             DateTime? startDate, 
-                                                                             DateTime? endDate,
-                                                                             int limit)
+        public async Task<(string Answer, List<EmailResponseDTO> Sources)> AskAsync(
+            string question,
+            DateTime? startDate,
+            DateTime? endDate,
+            CancellationToken cancellationToken = default)
         {
-            var emails = await _emailRepo.GetConversationEmailsAsync(conversationId, startDate, endDate, limit);
+            var sources = await GetSimilarEmailsAsync(question, startDate, endDate);
+
+            if (sources.Count == 0)
+            {
+                return ("I couldn't find relevant emails to answer this question.", sources);
+            }
+
+            var emailContext = string.Join(
+                "\n\n--- EMAIL ---\n",
+                sources.Select(email => $"""
+                    ExternalMessageId: {email.ExternalMessageId}
+                    ConversationId: {email.ConversationId}
+                    Subject: {email.Subject}
+                    Sender: {email.Sender}
+                    Recipients: {email.Recipients}
+                    SentAt: {email.SentAt:O}
+                    Body:
+                    {email.Body}
+                    """));
+
+            var answer = await _geminiAnswerService.GenerateAnswerAsync(
+                question, emailContext, cancellationToken);
+
+            return (answer, sources);
+        }
+
+        public async Task<List<EmailResponseDTO>> GetConversationEmailsAsync(
+            string conversationId,
+            DateTime? startDate,
+            DateTime? endDate,
+            int limit)
+        {
+            var emails = await _emailRepo.GetConversationEmailsAsync(
+                conversationId, startDate, endDate, limit);
+
             return _mapper.Map<List<EmailResponseDTO>>(emails);
         }
     }
