@@ -80,19 +80,33 @@ namespace InboxIntelligence.Services
 
             return newEmails.Count;
         }
-        public async Task<List<EmailResponseDTO>> GetSimilarEmailsAsync(string query)
+        public async Task<List<EmailResponseDTO>> GetSimilarEmailsAsync(string query, DateTime? startDate, DateTime? endDate)
         {
             const int topK = 5;
             const int rrfK = 60;
 
             var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(query);
 
+            if (startDate.HasValue)
+            {
+                startDate = DateTime.SpecifyKind(
+                    startDate.Value, DateTimeKind.Utc);
+            }
+
+            if (endDate.HasValue)
+            {
+                endDate = DateTime.SpecifyKind(
+                    endDate.Value, DateTimeKind.Utc);
+            }
+
             var semanticResults = await _emailRepo.GetSimilarEmailsAsync(
                 queryEmbedding,
+                startDate, endDate,
                 topK);
 
             var keywordResults = await _emailRepo.GetEmailsByKeywordAsync(
                 query,
+                startDate, endDate,
                 topK);
 
             var rrfScores = new Dictionary<Guid, double>();
@@ -140,6 +154,15 @@ namespace InboxIntelligence.Services
             }
 
             return _mapper.Map<List<EmailResponseDTO>>(rankedEmails);
+        }
+
+        public async Task<List<EmailResponseDTO>> GetConversationEmailsAsync(string conversationId, 
+                                                                             DateTime? startDate, 
+                                                                             DateTime? endDate,
+                                                                             int limit)
+        {
+            var emails = await _emailRepo.GetConversationEmailsAsync(conversationId, startDate, endDate, limit);
+            return _mapper.Map<List<EmailResponseDTO>>(emails);
         }
     }
 }

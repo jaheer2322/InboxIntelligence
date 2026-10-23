@@ -3,12 +3,14 @@ using InboxIntelligence.Models;
 using Microsoft.EntityFrameworkCore;
 using Pgvector;
 using Pgvector.EntityFrameworkCore;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace InboxIntelligence.Repositories
 {
     public class EmailRepository : IEmailRepository
     {
-        private readonly InboxIntelligenceDbContext _dbContext; ILogger<EmailRepository> _logger;
+        private readonly InboxIntelligenceDbContext _dbContext; 
+        private readonly ILogger<EmailRepository> _logger;
         public EmailRepository(InboxIntelligenceDbContext dbContext, ILogger<EmailRepository> logger)
         {
             _dbContext = dbContext;
@@ -57,35 +59,49 @@ namespace InboxIntelligence.Repositories
             await _dbContext.SaveChangesAsync();
         }
 
-        public async Task<List<Email>> GetSimilarEmailsAsync(float[] queryEmbedding, int topK)
+        public async Task<List<Email>> GetSimilarEmailsAsync(
+                                        float[] queryEmbedding, 
+                                        DateTime? startDate, 
+                                        DateTime? endDate,
+                                        int topK)
         {
             var vector = new Vector(queryEmbedding);
-            var result = await _dbContext.Emails.AsNoTracking()
-                                          .Where(e => e.Embedding != null)
-                                          .OrderBy(e => e.Embedding!.CosineDistance(vector))
-                                          .Take(topK)
-                                          .ToListAsync();
+
+            var query = _dbContext.Emails.AsNoTracking().Where(e => e.Embedding != null);
+
+            if (startDate.HasValue) query = query.Where(e => e.SentAt >= startDate.Value);
+            if (endDate.HasValue) query = query.Where(e => e.SentAt <= endDate.Value);
+
+            var result = await query.OrderBy(e => e.Embedding!.CosineDistance(vector))
+                                    .Take(topK)
+                                    .ToListAsync();
 
             return result;
         }
 
         public async Task<List<Email>> GetEmailsByKeywordAsync(
-            string query,
-            int topK)
+                                        string userQuery,
+                                        DateTime? startDate,
+                                        DateTime? endDate,
+                                        int topK)
         {
             var queryText = string.Join(
                 " | ",
-                query.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+                userQuery.Split(' ', StringSplitOptions.RemoveEmptyEntries));
 
-            var keywordQuery = _dbContext.Emails
-                .AsNoTracking()
-                .Where(e => EF.Functions
-                    .ToTsVector("english", e.Subject + " " + e.Body)
-                    .Matches(EF.Functions.ToTsQuery("english", queryText)))
-                .OrderByDescending(e => EF.Functions
-                    .ToTsVector("english", e.Subject + " " + e.Body)
-                    .Rank(EF.Functions.ToTsQuery("english", queryText)))
-                .Take(topK);
+            var query = _dbContext.Emails.AsNoTracking();
+
+            if (startDate.HasValue) query = query.Where(e => e.SentAt >= startDate.Value);
+            if (endDate.HasValue) query = query.Where(e => e.SentAt <= endDate.Value);
+
+            var keywordQuery = query
+                                .Where(e => EF.Functions
+                                    .ToTsVector("english", e.Subject + " " + e.Body)
+                                    .Matches(EF.Functions.ToTsQuery("english", queryText)))
+                                .OrderByDescending(e => EF.Functions
+                                    .ToTsVector("english", e.Subject + " " + e.Body)
+                                    .Rank(EF.Functions.ToTsQuery("english", queryText)))
+                                .Take(topK);
 
             _logger.LogInformation("Keyword query text: {QueryText}", queryText);
             _logger.LogInformation("Keyword SQL: {Sql}", keywordQuery.ToQueryString());
@@ -95,6 +111,17 @@ namespace InboxIntelligence.Repositories
             _logger.LogInformation("Keyword result count: {Count}", results.Count);
 
             return results;
+        }
+        public async Task<List<Email>> GetConversationEmailsAsync(string conversationId, DateTime? startDate, DateTime? endDate, int limit)
+        {
+            var query = _dbContext.Emails
+                            .AsNoTracking()
+                            .Where(e => e.ConversationId == conversationId);
+
+            if (startDate.HasValue) query = query.Where(e => e.SentAt >= startDate.Value);
+            if (endDate.HasValue) query = query.Where(e => e.SentAt <= endDate.Value);
+
+            return await query.OrderBy(e => e.SentAt).Take(limit).ToListAsync();
         }
 
         public async Task IncrementEmbeddingFailureCountAsync(Email email)
