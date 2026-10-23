@@ -14,8 +14,8 @@ Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
     .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
     .MinimumLevel.Override(
-    "Microsoft.EntityFrameworkCore.Database.Command",
-    LogEventLevel.Warning)
+        "Microsoft.EntityFrameworkCore.Database.Command",
+        LogEventLevel.Warning)
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .WriteTo.File(
@@ -35,8 +35,9 @@ builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 builder.Services.AddEndpointsApiExplorer();
 
-// Register GeminiEmbeddingService for IEmbeddingService
+// Register Gemini services
 builder.Services.AddHttpClient<IEmbeddingService, GeminiEmbeddingService>();
+builder.Services.AddHttpClient<IGeminiAnswerService, GeminiAnswerService>();
 
 // Register global exception handler
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -53,7 +54,7 @@ builder.Services.AddDbContext<InboxIntelligenceDbContext>(options =>
         npgsqlOptions => npgsqlOptions.UseVector());
 });
 
-// Register Service, Repositories
+// Register services and repositories
 builder.Services.AddScoped<IEmailRepository, EmailRepository>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
