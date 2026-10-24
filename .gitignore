@@ -2,3 +2,4 @@
 .vs/
 bin/
 logs/
+/frontend/__pycache__
