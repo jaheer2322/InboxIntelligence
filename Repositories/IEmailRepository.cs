@@ -1,4 +1,5 @@
 ﻿using InboxIntelligence.Models;
+using InboxIntelligence.Models.DTOs;
 
 namespace InboxIntelligence.Repositories
 {
@@ -26,5 +27,10 @@ namespace InboxIntelligence.Repositories
                             DateTime? startDate, 
                             DateTime? endDate, 
                             int limit);
+        Task<List<Email>> GetEmailsByContactAsync(
+                            string contact,
+                            DateTime? startDate,
+                            DateTime? endDate,
+                            int limit = 50);
     }
 }

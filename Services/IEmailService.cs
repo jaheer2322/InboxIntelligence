@@ -21,5 +21,10 @@ namespace InboxIntelligence.Services
                         DateTime? startDate,
                         DateTime? endDate,
                         CancellationToken cancellationToken = default);
+        Task<List<EmailResponseDTO>> GetEmailsByContactAsync(
+            string contact,
+            DateTime? startDate,
+            DateTime? endDate,
+            int limit = 50);
     }
 }

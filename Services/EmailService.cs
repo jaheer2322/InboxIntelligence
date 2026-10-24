@@ -34,6 +34,18 @@ namespace InboxIntelligence.Services
                                     DateTime? endDate,
                                     CancellationToken cancellationToken = default)
         {
+            if (startDate.HasValue)
+            {
+                startDate = DateTime.SpecifyKind(
+                    startDate.Value, DateTimeKind.Utc);
+            }
+
+            if (endDate.HasValue)
+            {
+                endDate = DateTime.SpecifyKind(
+                    endDate.Value, DateTimeKind.Utc);
+            }
+
             var emails = await GetSimilarEmailsAsync(query,
                                                      contact,
                                                      startDate,
@@ -230,7 +242,53 @@ namespace InboxIntelligence.Services
                                                                              DateTime? endDate,
                                                                              int limit)
         {
+            if (startDate.HasValue)
+            {
+                startDate = DateTime.SpecifyKind(
+                    startDate.Value, DateTimeKind.Utc);
+            }
+
+            if (endDate.HasValue)
+            {
+                endDate = DateTime.SpecifyKind(
+                    endDate.Value, DateTimeKind.Utc);
+            }
             var emails = await _emailRepo.GetConversationEmailsAsync(conversationId, startDate, endDate, limit);
+            return _mapper.Map<List<EmailResponseDTO>>(emails);
+        }
+
+        public async Task<List<EmailResponseDTO>> GetEmailsByContactAsync(string contact, DateTime? startDate, DateTime? endDate, int limit = 50)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(contact);
+
+            if (startDate.HasValue &&
+                endDate.HasValue &&
+                startDate.Value > endDate.Value)
+            {
+                throw new ArgumentException(
+                    "startDate must be earlier than or equal to endDate.");
+            }
+
+            if (limit < 1 || limit > 100)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(limit),
+                    "Limit must be between 1 and 100.");
+            }
+
+            if (startDate.HasValue)
+            {
+                startDate = DateTime.SpecifyKind(
+                    startDate.Value, DateTimeKind.Utc);
+            }
+
+            if (endDate.HasValue)
+            {
+                endDate = DateTime.SpecifyKind(
+                    endDate.Value, DateTimeKind.Utc);
+            }
+
+            var emails = await _emailRepo.GetEmailsByContactAsync(contact, startDate, endDate, limit);
             return _mapper.Map<List<EmailResponseDTO>>(emails);
         }
     }

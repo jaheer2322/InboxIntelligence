@@ -1,5 +1,6 @@
 ﻿using InboxIntelligence.Data;
 using InboxIntelligence.Models;
+using InboxIntelligence.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Pgvector;
 using Pgvector.EntityFrameworkCore;
@@ -151,5 +152,26 @@ namespace InboxIntelligence.Repositories
             await _dbContext.SaveChangesAsync();
         }
 
+        public async Task<List<Email>> GetEmailsByContactAsync(string contact, DateTime? startDate, DateTime? endDate, int limit = 50)
+        {
+            var query = _dbContext.Emails
+                .AsNoTracking()
+                .Where(e => _dbContext.ContactEmails.Any(ce =>
+                    ce.EmailId == e.Id &&
+                    EF.Functions.ILike(
+                        ce.EmailAddress,
+                        $"%{contact}%")));
+
+            if (startDate.HasValue)
+                query = query.Where(e => e.SentAt >= startDate.Value);
+
+            if (endDate.HasValue)
+                query = query.Where(e => e.SentAt <= endDate.Value);
+
+            return await query
+                .OrderBy(e => e.SentAt)
+                .Take(limit)
+                .ToListAsync();
+        }
     }
 }
