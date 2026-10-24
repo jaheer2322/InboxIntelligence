@@ -6,13 +6,16 @@ namespace InboxIntelligence.Services
     public class GeminiAnswerService : IGeminiAnswerService
     {
         private readonly HttpClient _httpClient;
+        private readonly ILogger<GeminiAnswerService> _logger;
         private readonly IConfiguration _configuration;
 
         public GeminiAnswerService(
             HttpClient httpClient,
+            ILogger<GeminiAnswerService> logger,
             IConfiguration configuration)
         {
             _httpClient = httpClient;
+            _logger = logger;
             _configuration = configuration;
         }
 
@@ -99,6 +102,8 @@ namespace InboxIntelligence.Services
                 await response.Content.ReadAsStringAsync(
                     cancellationToken));
 
+            //_logger.LogInformation($"LLM Response: {document.RootElement.GetRawText()}");
+
             if (!document.RootElement.TryGetProperty(
                     "candidates", out var candidates) ||
                 candidates.GetArrayLength() == 0)
@@ -123,7 +128,11 @@ namespace InboxIntelligence.Services
                     var answer = textElement.GetString();
 
                     if (!string.IsNullOrWhiteSpace(answer))
-                        return answer.Trim();
+                    {
+                        answer = answer.Trim();
+                        _logger.LogInformation($"LLM output: {answer}");
+                        return answer;
+                    }
                 }
             }
 

@@ -33,8 +33,17 @@ namespace InboxIntelligence.Controllers
                 });
             }
 
+            if (string.IsNullOrWhiteSpace(request.Contact))
+            {
+                request.Contact = null;
+            }
+
             var answer = await _emailService.AskAsync(
-                request.Query, startDate, endDate, cancellationToken);
+                request.Query, 
+                request.Contact, 
+                startDate, 
+                endDate, 
+                cancellationToken);
 
             return Ok(new { answer });
         }
@@ -63,7 +72,12 @@ namespace InboxIntelligence.Controllers
                 return BadRequest(new { Message = "startDate must be earlier than or equal to endDate." });
             }
 
-            var similarEmails = await _emailService.GetSimilarEmailsAsync(request.Query, startDate, endDate);
+            if (string.IsNullOrWhiteSpace(request.Contact))
+            {
+                request.Contact = null;
+            }
+
+            var similarEmails = await _emailService.GetSimilarEmailsAsync(request.Query, request.Contact, startDate, endDate);
             
             if (similarEmails.Count == 0) return Ok(new { Message = "Sorry! No relavant emails found!" });
             

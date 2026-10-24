@@ -29,15 +29,24 @@ namespace InboxIntelligence.Services
 
         public async Task<string> AskAsync(
                                     string query,
+                                    string? contact,
                                     DateTime? startDate,
                                     DateTime? endDate,
                                     CancellationToken cancellationToken = default)
         {
-            var emails = await GetSimilarEmailsAsync(query, startDate, endDate);
-            
+            var emails = await GetSimilarEmailsAsync(query,
+                                                     contact,
+                                                     startDate,
+                                                     endDate);
+
             if (emails.Count == 0)
                 return "I couldn't find relevant emails to answer this question.";
 
+            //_logger.LogInformation(
+            //    "For query {0},\n retrieved emails are {1}", 
+            //    query, 
+            //    emails.Select(e => $"MessageId: {e.Id}, Subject: {e.Subject}\n").ToList());
+            
             var emailContext = string.Join(
                 "\n\n--- EMAIL ---\n\n",
                 emails.Select(e => $"""
@@ -101,7 +110,31 @@ namespace InboxIntelligence.Services
 
             var newEmails = _mapper.Map<List<Email>>(newEmailDTOs);
 
-            await _emailRepo.AddRangeAsync(newEmails);
+            var contactMappings = new List<ContactEmail>();
+
+            for (var i = 0; i < newEmails.Count; i++)
+            {
+                var email = newEmails[i];
+                var dto = newEmailDTOs[i];
+
+                var addresses = dto.Recipients
+                    .Append(dto.Sender)
+                    .Where(address => !string.IsNullOrWhiteSpace(address))
+                    .Select(address => address.Trim().ToLowerInvariant())
+                    .Distinct(StringComparer.Ordinal);
+
+                foreach (var address in addresses)
+                {
+                    contactMappings.Add(new ContactEmail
+                    {
+                        EmailAddress = address,
+                        EmailId = email.Id,
+                        Email = email
+                    });
+                }
+            }
+
+            await _emailRepo.AddRangeAsync(newEmails, contactMappings);
 
             _logger.LogInformation(
                 "Email import completed successfully. " +
@@ -110,7 +143,11 @@ namespace InboxIntelligence.Services
 
             return newEmails.Count;
         }
-        public async Task<List<EmailResponseDTO>> GetSimilarEmailsAsync(string query, DateTime? startDate, DateTime? endDate)
+        public async Task<List<EmailResponseDTO>> GetSimilarEmailsAsync(
+                                                    string query, 
+                                                    string? contact,
+                                                    DateTime? startDate, 
+                                                    DateTime? endDate)
         {
             const int topK = 5;
             const int rrfK = 60;
@@ -131,11 +168,13 @@ namespace InboxIntelligence.Services
 
             var semanticResults = await _emailRepo.GetSimilarEmailsAsync(
                 queryEmbedding,
+                contact,
                 startDate, endDate,
                 topK);
 
             var keywordResults = await _emailRepo.GetEmailsByKeywordAsync(
                 query,
+                contact,
                 startDate, endDate,
                 topK);
 

@@ -59,7 +59,7 @@ namespace InboxIntelligence.Tests.EmailServiceTests
             Assert.AreEqual(0, result);
 
             _emailRepoMock.Verify(
-                repo => repo.AddRangeAsync(It.IsAny<IEnumerable<Email>>()),
+                repo => repo.AddRangeAsync(It.IsAny<IEnumerable<Email>>(), It.IsAny<IEnumerable<ContactEmail>>()),
                 Times.Never
                 );
         }
@@ -104,7 +104,8 @@ namespace InboxIntelligence.Tests.EmailServiceTests
             _emailRepoMock.Verify(
                 mock => mock.AddRangeAsync(
                     It.Is<IEnumerable<Email>>(
-                        em => em.Count() == 1 && em.First().ExternalMessageId == "email-new-001")),
+                        em => em.Count() == 1 && em.First().ExternalMessageId == "email-new-001"),
+                    It.IsAny<IEnumerable<ContactEmail>>()),
                 Times.Once);
         }
 
@@ -159,7 +160,8 @@ namespace InboxIntelligence.Tests.EmailServiceTests
             _emailRepoMock.Verify(
                 repo => repo.AddRangeAsync(
                     It.Is<IEnumerable<Email>>(
-                        inserted => inserted.Count() == 1)),
+                        inserted => inserted.Count() == 1),
+                    It.IsAny<IEnumerable<ContactEmail>>()),
                 Times.Once);
         }
 
@@ -188,7 +190,8 @@ namespace InboxIntelligence.Tests.EmailServiceTests
 
             _emailRepoMock.Verify(
                 repo => repo.AddRangeAsync(
-                    It.IsAny<IEnumerable<Email>>()),
+                    It.IsAny<IEnumerable<Email>>(),
+                    It.IsAny<IEnumerable<ContactEmail>>()),
                 Times.Never);
         }
 
@@ -212,7 +215,8 @@ namespace InboxIntelligence.Tests.EmailServiceTests
 
             _emailRepoMock.Verify(
                 repo => repo.AddRangeAsync(
-                    It.IsAny<IEnumerable<Email>>()),
+                    It.IsAny<IEnumerable<Email>>(),
+                    It.IsAny<IEnumerable<ContactEmail>>()),
                 Times.Never);
         }
 

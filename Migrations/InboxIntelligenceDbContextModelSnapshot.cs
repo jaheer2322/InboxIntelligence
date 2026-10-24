@@ -23,6 +23,21 @@ namespace InboxIntelligence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("InboxIntelligence.Models.ContactEmail", b =>
+                {
+                    b.Property<string>("EmailAddress")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("EmailId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("EmailAddress", "EmailId");
+
+                    b.HasIndex("EmailId");
+
+                    b.ToTable("ContactEmails");
+                });
+
             modelBuilder.Entity("InboxIntelligence.Models.Email", b =>
                 {
                     b.Property<Guid>("Id")
@@ -76,6 +91,17 @@ namespace InboxIntelligence.Migrations
                     b.HasIndex("SentAt");
 
                     b.ToTable("Emails");
+                });
+
+            modelBuilder.Entity("InboxIntelligence.Models.ContactEmail", b =>
+                {
+                    b.HasOne("InboxIntelligence.Models.Email", "Email")
+                        .WithMany()
+                        .HasForeignKey("EmailId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Email");
                 });
 #pragma warning restore 612, 618
         }

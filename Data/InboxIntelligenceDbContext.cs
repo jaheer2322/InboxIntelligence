@@ -7,6 +7,7 @@ namespace InboxIntelligence.Data
     {
         public InboxIntelligenceDbContext(DbContextOptions<InboxIntelligenceDbContext> options) : base(options) { }
         public DbSet<Email> Emails => Set<Email>();
+        public DbSet<ContactEmail> ContactEmails => Set<ContactEmail>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -38,6 +39,16 @@ namespace InboxIntelligence.Data
                 entity.HasIndex(e => e.SentAt);
                 entity.Property(e => e.Embedding)
                     .HasColumnType("vector(768)");
+            });
+
+            modelBuilder.Entity<ContactEmail>(entity =>
+            {
+                entity.HasKey(ce => new { ce.EmailAddress, ce.EmailId });
+                entity.Property(ce => ce.EmailAddress).IsRequired();
+                entity.HasOne(ce => ce.Email)
+                      .WithMany()
+                      .HasForeignKey(ce =>ce.EmailId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

@@ -7,6 +7,7 @@ namespace InboxIntelligence.Services
         Task<int> ImportEmailsAsync(IEnumerable<BulkEmailImportDTO> emails);
         Task<List<EmailResponseDTO>> GetSimilarEmailsAsync(
                                         string query,
+                                        string? contact,
                                         DateTime? startDate,
                                         DateTime? endDate);
         Task<List<EmailResponseDTO>> GetConversationEmailsAsync(
@@ -16,6 +17,7 @@ namespace InboxIntelligence.Services
                                         int limit);
         Task<string> AskAsync(
                         string query,
+                        string? contact,
                         DateTime? startDate,
                         DateTime? endDate,
                         CancellationToken cancellationToken = default);

@@ -1,6 +1,7 @@
 import os
 import requests
 import streamlit as st
+from urllib.parse import urlsplit
 
 st.set_page_config(
     page_title="Inbox Intelligence",
@@ -146,7 +147,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-DEFAULT_API = os.getenv("INBOX_API_BASE_URL", "https://localhost:7000").rstrip("/")
+DEFAULT_API = os.getenv("INBOX_API_BASE_URL", "https://localhost:7089").rstrip("/")
 ASK_PATH = "/api/Emails/ask"
 
 if "messages" not in st.session_state:
@@ -157,9 +158,13 @@ with st.sidebar:
     st.caption("Ask questions. Find answers in your email.")
     st.divider()
     st.markdown("**Connection**")
+    saved_api_base = st.session_state.get("api_base")
+    # Migrate the prior default: port 7089 is the HTTPS endpoint in launchSettings.json.
+    if not saved_api_base or saved_api_base == "http://localhost:7089":
+        saved_api_base = DEFAULT_API
     api_base = st.text_input(
         "API base URL",
-        value=st.session_state.get("api_base", DEFAULT_API),
+        value=saved_api_base,
         help="Use the exact base URL printed when your ASP.NET Core API starts.",
     ).rstrip("/")
     st.session_state["api_base"] = api_base
@@ -172,9 +177,17 @@ with st.sidebar:
         "Summarize the latest project updates.",
         "Who is responsible for staging verification?",
     ]
+    def choose_example(question):
+        st.session_state["pending_prompt"] = question
+
     for i, example in enumerate(examples):
-        if st.button(example, key=f"example_{i}", use_container_width=True):
-            st.session_state["pending_prompt"] = example
+        st.button(
+            example,
+            key=f"example_{i}",
+            use_container_width=True,
+            on_click=choose_example,
+            args=(example,),
+        )
     st.divider()
     if st.button("＋ New conversation", use_container_width=True):
         st.session_state.messages = []
@@ -204,27 +217,36 @@ with tag:
     st.markdown("<div style='text-align:right;padding-top:1.1rem;color:#a2acc5;font-size:.8rem'>DEMO · V1</div>", unsafe_allow_html=True)
 
 for message in st.session_state.messages:
-    with st.chat_message(message["role"], avatar="🧑‍💻" if message["role"] == "user" else "✦"):
+    with st.chat_message(message["role"], avatar="🧑‍💻" if message["role"] == "user" else "🤖"):
         st.markdown(message["content"])
 
-pending = st.session_state.pop("pending_prompt", None)
-prompt = st.chat_input("Ask something about your emails…")
-if pending:
-    prompt = pending
+chat_prompt = st.chat_input("Ask something about your emails…")
+
+# Sidebar selection takes priority; otherwise use the submitted chat input.
+prompt = st.session_state.get("pending_prompt") or chat_prompt
 
 if prompt:
+    # Clear the selected sidebar prompt only after the handler has received it.
+    st.session_state.pop("pending_prompt", None)
+
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar="🧑‍💻"):
         st.markdown(prompt)
 
-    with st.chat_message("assistant", avatar="✦"):
+    with st.chat_message("assistant", avatar="🤖"):
         with st.spinner("Searching emails and generating an answer…"):
             try:
+                api_host = (urlsplit(api_base).hostname or "").lower()
+                ca_bundle = os.getenv("INBOX_API_CA_BUNDLE")
+                # Python's requests does not automatically trust the local ASP.NET
+                # development certificate. Allow an explicit CA bundle; otherwise
+                # skip certificate verification only for loopback development URLs.
+                verify_tls = ca_bundle if ca_bundle else api_host not in {"localhost", "127.0.0.1", "::1"}
                 response = requests.post(
                     f"{api_base}{ASK_PATH}",
                     json={"query": prompt},
                     timeout=90,
-                    verify=True,
+                    verify=verify_tls,
                 )
                 if not response.ok:
                     raise RuntimeError(
@@ -238,13 +260,21 @@ if prompt:
                 st.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
             except requests.exceptions.SSLError:
-                st.error("HTTPS certificate validation failed. Use the trusted local HTTPS URL or configure the development certificate.")
+                error = "HTTPS certificate validation failed. Use the trusted local HTTPS URL or configure the development certificate."
+                st.error(error)
+                st.session_state.messages.append({"role": "assistant", "content": error})
             except requests.exceptions.ConnectionError:
-                st.error("Couldn't connect. Make sure your .NET API is running and the sidebar URL matches its launch address.")
+                error = "Couldn't connect. Make sure your .NET API is running and the sidebar URL matches its launch address."
+                st.error(error)
+                st.session_state.messages.append({"role": "assistant", "content": error})
             except requests.exceptions.Timeout:
-                st.error("The API took too long to respond. Check the .NET logs and try again.")
+                error = "The API took too long to respond. Check the .NET logs and try again."
+                st.error(error)
+                st.session_state.messages.append({"role": "assistant", "content": error})
             except (requests.RequestException, ValueError, RuntimeError) as exc:
-                st.error(f"Request failed: {exc}")
+                error = f"Request failed: {exc}"
+                st.error(error)
+                st.session_state.messages.append({"role": "assistant", "content": error})
     st.rerun()
 
 if not st.session_state.messages:

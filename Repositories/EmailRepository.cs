@@ -35,15 +35,17 @@ namespace InboxIntelligence.Repositories
             return new HashSet<string>(existingIds, StringComparer.Ordinal);
         }
 
-        public async Task AddRangeAsync(IEnumerable<Email> emails)
+        public async Task AddRangeAsync(IEnumerable<Email> emails, IEnumerable<ContactEmail> contactEmails)
         {
             var emailList = emails.ToList();
 
             if(emailList.Count == 0) { return; }
 
             await _dbContext.Emails.AddRangeAsync(emailList);
+            await _dbContext.ContactEmails.AddRangeAsync(contactEmails);
             await _dbContext.SaveChangesAsync();
         }
+
         public Task<List<Email>> GetEmailsPendingEmbeddingAsync(int batchSize)
         {
             return _dbContext.Emails.Where(e => e.Embedding == null && e.EmbeddingFailureCount < 3)
@@ -60,6 +62,7 @@ namespace InboxIntelligence.Repositories
 
         public async Task<List<Email>> GetSimilarEmailsAsync(
                                         float[] queryEmbedding, 
+                                        string? contact,
                                         DateTime? startDate, 
                                         DateTime? endDate,
                                         int topK)
@@ -70,6 +73,15 @@ namespace InboxIntelligence.Repositories
 
             if (startDate.HasValue) query = query.Where(e => e.SentAt >= startDate.Value);
             if (endDate.HasValue) query = query.Where(e => e.SentAt <= endDate.Value);
+            if (!string.IsNullOrWhiteSpace(contact))
+            {
+                query = query.Where(e =>
+                    _dbContext.ContactEmails.Any(ce =>
+                        ce.EmailId == e.Id &&
+                        EF.Functions.ILike(
+                            ce.EmailAddress,
+                            $"%{contact}%")));
+            }
 
             var result = await query.OrderBy(e => e.Embedding!.CosineDistance(vector))
                                     .Take(topK)
@@ -80,6 +92,7 @@ namespace InboxIntelligence.Repositories
 
         public async Task<List<Email>> GetEmailsByKeywordAsync(
                                         string userQuery,
+                                        string? contact,
                                         DateTime? startDate,
                                         DateTime? endDate,
                                         int topK)
@@ -92,6 +105,15 @@ namespace InboxIntelligence.Repositories
 
             if (startDate.HasValue) query = query.Where(e => e.SentAt >= startDate.Value);
             if (endDate.HasValue) query = query.Where(e => e.SentAt <= endDate.Value);
+            if (!string.IsNullOrWhiteSpace(contact))
+            {
+                query = query.Where(e =>
+                    _dbContext.ContactEmails.Any(ce =>
+                        ce.EmailId == e.Id &&
+                        EF.Functions.ILike(
+                            ce.EmailAddress,
+                            $"%{contact}%")));
+            }
 
             var keywordQuery = query
                                 .Where(e => EF.Functions
