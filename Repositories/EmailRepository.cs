@@ -15,7 +15,7 @@ namespace InboxIntelligence.Repositories
             _dbContext = dbContext;
         }
 
-        public async Task<HashSet<string>> GetExistingMessageIdsAsync(IEnumerable<string> messageIds)
+        public async Task<HashSet<string>> GetExistingMessageIdsAsync(IEnumerable<string> messageIds, CancellationToken cancellationToken = default)
         {
             var ids = messageIds
             .Where(id => !string.IsNullOrWhiteSpace(id))
@@ -29,34 +29,34 @@ namespace InboxIntelligence.Repositories
                 .AsNoTracking()
                 .Where(e => ids.Contains(e.ExternalMessageId)) //  similar to - WHERE ExternalMessageId IN (x, y, z);  
                 .Select(e => e.ExternalMessageId)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             return new HashSet<string>(existingIds, StringComparer.Ordinal);
         }
 
-        public async Task AddRangeAsync(IEnumerable<Email> emails, IEnumerable<ContactEmail> contactEmails)
+        public async Task AddRangeAsync(IEnumerable<Email> emails, IEnumerable<ContactEmail> contactEmails, CancellationToken cancellationToken = default)
         {
             var emailList = emails.ToList();
 
             if(emailList.Count == 0) { return; }
 
-            await _dbContext.Emails.AddRangeAsync(emailList);
-            await _dbContext.ContactEmails.AddRangeAsync(contactEmails);
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.Emails.AddRangeAsync(emailList, cancellationToken);
+            await _dbContext.ContactEmails.AddRangeAsync(contactEmails, cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        public Task<List<Email>> GetEmailsPendingEmbeddingAsync(int batchSize)
+        public Task<List<Email>> GetEmailsPendingEmbeddingAsync(int batchSize, CancellationToken cancellationToken = default)
         {
             return _dbContext.Emails.Where(e => e.Embedding == null && e.EmbeddingFailureCount < 3)
                                     .OrderBy(e => e.SentAt)
                                     .Take(batchSize)
-                                    .ToListAsync();
+                                    .ToListAsync(cancellationToken);
         }
 
-        public async Task SaveEmbeddingAsync(Email email, float[] embedding)
+        public async Task SaveEmbeddingAsync(Email email, float[] embedding, CancellationToken cancellationToken = default)
         {
             email.Embedding = new Pgvector.Vector(embedding);
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
         public async Task<List<Email>> GetSimilarEmailsAsync(
@@ -64,7 +64,8 @@ namespace InboxIntelligence.Repositories
                                         string? contact,
                                         DateTime? startDate, 
                                         DateTime? endDate,
-                                        int topK)
+                                        int topK,
+                                        CancellationToken cancellationToken = default)
         {
             var vector = new Vector(queryEmbedding);
 
@@ -84,7 +85,7 @@ namespace InboxIntelligence.Repositories
 
             var result = await query.OrderBy(e => e.Embedding!.CosineDistance(vector))
                                     .Take(topK)
-                                    .ToListAsync();
+                                    .ToListAsync(cancellationToken);
 
             return result;
         }
@@ -94,7 +95,8 @@ namespace InboxIntelligence.Repositories
                                         string? contact,
                                         DateTime? startDate,
                                         DateTime? endDate,
-                                        int topK)
+                                        int topK,
+                                        CancellationToken cancellationToken = default)
         {
             var queryText = string.Join(
                 " | ",
@@ -123,11 +125,11 @@ namespace InboxIntelligence.Repositories
                                     .Rank(EF.Functions.ToTsQuery("english", queryText)))
                                 .Take(topK);
 
-            var results = await keywordQuery.ToListAsync();
+            var results = await keywordQuery.ToListAsync(cancellationToken);
 
             return results;
         }
-        public async Task<List<Email>> GetConversationEmailsAsync(string conversationId, DateTime? startDate, DateTime? endDate, int limit)
+        public async Task<List<Email>> GetConversationEmailsAsync(string conversationId, DateTime? startDate, DateTime? endDate, int limit, CancellationToken cancellationToken = default)
         {
             var query = _dbContext.Emails
                             .AsNoTracking()
@@ -136,16 +138,16 @@ namespace InboxIntelligence.Repositories
             if (startDate.HasValue) query = query.Where(e => e.SentAt >= startDate.Value);
             if (endDate.HasValue) query = query.Where(e => e.SentAt <= endDate.Value);
 
-            return await query.OrderBy(e => e.SentAt).Take(limit).ToListAsync();
+            return await query.OrderBy(e => e.SentAt).Take(limit).ToListAsync(cancellationToken);
         }
 
-        public async Task IncrementEmbeddingFailureCountAsync(Email email)
+        public async Task IncrementEmbeddingFailureCountAsync(Email email, CancellationToken cancellationToken = default)
         {
             email.EmbeddingFailureCount++;
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<List<Email>> GetEmailsByContactAsync(string contact, DateTime? startDate, DateTime? endDate, int limit = 50)
+        public async Task<List<Email>> GetEmailsByContactAsync(string contact, DateTime? startDate, DateTime? endDate, int limit = 50, CancellationToken cancellationToken = default)
         {
             var query = _dbContext.Emails
                 .AsNoTracking()
@@ -164,7 +166,7 @@ namespace InboxIntelligence.Repositories
             return await query
                 .OrderBy(e => e.SentAt)
                 .Take(limit)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
         }
     }
 }
