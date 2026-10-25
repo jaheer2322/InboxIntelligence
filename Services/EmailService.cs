@@ -53,11 +53,6 @@ namespace InboxIntelligence.Services
             if (emails.Count == 0)
                 return "I couldn't find relevant emails to answer this question.";
 
-            //_logger.LogInformation(
-            //    "For query {0},\n retrieved emails are {1}", 
-            //    query, 
-            //    emails.Select(e => $"MessageId: {e.Id}, Subject: {e.Subject}\n").ToList());
-            
             var emailContext = string.Join(
                 "\n\n--- EMAIL ---\n\n",
                 emails.Select(e => $"""
