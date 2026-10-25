@@ -32,7 +32,7 @@ namespace InboxIntelligence.Services
                     text,
                     stoppingToken);
 
-                await repository.SaveEmbeddingAsync(email, embedding);
+                await repository.SaveEmbeddingAsync(email, embedding, stoppingToken);
 
             }
             catch (OperationCanceledException)
@@ -42,7 +42,7 @@ namespace InboxIntelligence.Services
             }
             catch (Exception ex)
             {
-                await repository.IncrementEmbeddingFailureCountAsync(email);
+                await repository.IncrementEmbeddingFailureCountAsync(email, stoppingToken);
 
                 _logger.LogError(
                     ex,
@@ -67,7 +67,7 @@ namespace InboxIntelligence.Services
 
                     var pendingEmails =
                         await repository.GetEmailsPendingEmbeddingAsync(
-                            BatchSize);
+                            BatchSize, stoppingToken);
 
                     foreach (var email in pendingEmails)
                     {
