@@ -56,9 +56,6 @@ namespace InboxIntelligence.Services
         }
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation(
-            "Embedding background service started.");
-
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
@@ -74,10 +71,6 @@ namespace InboxIntelligence.Services
                     var pendingEmails =
                         await repository.GetEmailsPendingEmbeddingAsync(
                             BatchSize);
-
-                    _logger.LogInformation(
-                        "Found {PendingCount} emails pending embeddings.",
-                        pendingEmails.Count);
 
                     foreach (var email in pendingEmails)
                     {
@@ -126,8 +119,6 @@ namespace InboxIntelligence.Services
                 }
             }
 
-            _logger.LogInformation(
-                "Embedding background service stopped.");
         }
     }
 }
