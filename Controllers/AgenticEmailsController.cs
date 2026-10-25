@@ -1,10 +1,12 @@
 ﻿
+using Asp.Versioning;
 using InboxIntelligence.Models.DTOs;
 using InboxIntelligence.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InboxIntelligence.Controllers;
 
+[ApiVersion("2.0")]
 [ApiController]
 [Route("api/v2/Emails")]
 public sealed class AgenticEmailsController : ControllerBase

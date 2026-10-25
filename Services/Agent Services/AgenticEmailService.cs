@@ -12,10 +12,17 @@ public sealed class AgenticEmailService : IAgenticEmailService
     private readonly bool _debugLogs;
 
     private const string SystemInstruction =
-        "You are an email intelligence assistant. " +
-        "Use the available tools to retrieve email evidence before answering " +
-        "questions about the mailbox. Base answers only on retrieved evidence. " +
-        "Do not claim to have searched emails unless a search tool was executed.";
+        "You are Inbox Intelligence, an assistant for the user's email mailbox. " +
+    "Only answer questions related to the user's emails, senders, " +
+    "conversations, dates, and information contained in emails. " +
+    "If a request is unrelated to email intelligence, politely decline " +
+    "and explain that you can only help with mailbox-related questions. " +
+    "Do not answer out-of-scope questions, even if you know the answer. " +
+    "For in-scope questions, use the available tools to retrieve relevant " +
+    "email evidence before answering. " +
+    "Base factual answers about the mailbox only on retrieved evidence. " +
+    "If the retrieved emails don't contain sufficient evidence, say so. " +
+    "Do not claim to have searched emails unless a search tool was executed.";
 
     public AgenticEmailService(
         IGeminiAgentClient geminiClient,
@@ -38,7 +45,7 @@ public sealed class AgenticEmailService : IAgenticEmailService
         if (_debugLogs)
         {
             _logger.LogInformation(
-                "AgenticEmail: Request started.");
+                "Agent: Request started.");
         }
 
         var requestBody = new
@@ -53,7 +60,7 @@ public sealed class AgenticEmailService : IAgenticEmailService
         if (_debugLogs)
         {
             _logger.LogInformation(
-                "AgenticEmail: Sending query to Gemini.");
+                "Agent: Sending query to Gemini.");
         }
 
         using var firstResponse =
@@ -65,7 +72,7 @@ public sealed class AgenticEmailService : IAgenticEmailService
         if (_debugLogs)
         {
             _logger.LogInformation(
-                "AgenticEmail: Gemini response parsed. IsToolCall={IsToolCall}, ToolName={ToolName}",
+                "Agent: Gemini response parsed. IsToolCall={IsToolCall}, ToolName={ToolName}",
                 firstResult.IsToolCall,
                 firstResult.ToolName ?? "None");
         }
@@ -80,7 +87,7 @@ public sealed class AgenticEmailService : IAgenticEmailService
             if (_debugLogs)
             {
                 _logger.LogInformation(
-                    "AgenticEmail: Request completed successfully without tool execution.");
+                    "Agent: Request completed successfully without tool execution.");
             }
 
             return ans;
@@ -98,7 +105,7 @@ public sealed class AgenticEmailService : IAgenticEmailService
         if (_debugLogs)
         {
             _logger.LogInformation(
-                "AgenticEmail: Executing tool {ToolName}",
+                "Agent: Executing tool {ToolName}",
                 firstResult.ToolName);
         }
 
@@ -109,7 +116,7 @@ public sealed class AgenticEmailService : IAgenticEmailService
         if (_debugLogs)
         {
             _logger.LogInformation(
-                "AgenticEmail: Tool {ToolName} executed successfully.",
+                "Agent: Tool {ToolName} executed successfully.",
                 firstResult.ToolName);
         }
 
@@ -118,7 +125,7 @@ public sealed class AgenticEmailService : IAgenticEmailService
         if (_debugLogs)
         {
             _logger.LogInformation(
-                "AgenticEmail: Sending tool result back to Gemini.");
+                "Agent: Sending tool result back to Gemini.");
         }
 
         // Return the tool result to Gemini, linked to the original call.
@@ -150,7 +157,7 @@ public sealed class AgenticEmailService : IAgenticEmailService
         if (_debugLogs)
         {
             _logger.LogInformation(
-                "AgenticEmail: Sending tool result back to Gemini.");
+                "Agent: Sending tool result back to Gemini.");
         }
 
         using var followUpResponse =
@@ -162,7 +169,7 @@ public sealed class AgenticEmailService : IAgenticEmailService
         if (_debugLogs)
         {
             _logger.LogInformation(
-                "AgenticEmail: Follow-up response parsed. IsToolCall={IsToolCall}, ToolName={ToolName}",
+                "Agent: Follow-up response parsed. IsToolCall={IsToolCall}, ToolName={ToolName}",
                 finalResult.IsToolCall,
                 finalResult.ToolName ?? "None");
         }
@@ -181,7 +188,7 @@ public sealed class AgenticEmailService : IAgenticEmailService
         if (_debugLogs)
         {
             _logger.LogInformation(
-                "AgenticEmail: Request completed successfully.");
+                "Agent: Request completed successfully.");
         }
 
         return answer;

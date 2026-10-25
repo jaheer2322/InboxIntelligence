@@ -51,6 +51,7 @@ builder.Services
         options.DefaultApiVersion = new ApiVersion(1, 0);
         options.AssumeDefaultVersionWhenUnspecified = false;
         options.ReportApiVersions = true;
+        options.ApiVersionReader = new HeaderApiVersionReader("api-version");
     })
     .AddMvc();
 
@@ -84,6 +85,7 @@ builder.Services.AddDbContext<InboxIntelligenceDbContext>(options =>
 // Register Service, Repositories
 builder.Services.AddScoped<IEmailRepository, EmailRepository>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IAgenticEmailService, AgenticEmailService>();
 
 // Register ToolExecutor
 builder.Services.AddScoped<EmailToolExecutor>();
