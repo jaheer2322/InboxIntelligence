@@ -142,7 +142,7 @@ namespace InboxIntelligence.Repositories
         public async Task IncrementEmbeddingFailureCountAsync(Email email)
         {
             email.EmbeddingFailureCount++;
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
         public async Task<List<Email>> GetEmailsByContactAsync(string contact, DateTime? startDate, DateTime? endDate, int limit = 50)
