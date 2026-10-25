@@ -49,7 +49,7 @@ namespace InboxIntelligence.Tests.EmailServiceTests
                 }
             };
 
-            _emailRepoMock.Setup(repo => repo.GetExistingMessageIdsAsync(It.IsAny<IEnumerable<string>>()))
+            _emailRepoMock.Setup(repo => repo.GetExistingMessageIdsAsync(It.IsAny<IEnumerable<string>>(), CancellationToken.None))
                       .ReturnsAsync(new HashSet<string> { "email-001" });
 
             // Act
@@ -59,7 +59,7 @@ namespace InboxIntelligence.Tests.EmailServiceTests
             Assert.AreEqual(0, result);
 
             _emailRepoMock.Verify(
-                repo => repo.AddRangeAsync(It.IsAny<IEnumerable<Email>>(), It.IsAny<IEnumerable<ContactEmail>>()),
+                repo => repo.AddRangeAsync(It.IsAny<IEnumerable<Email>>(), It.IsAny<IEnumerable<ContactEmail>>(), CancellationToken.None),
                 Times.Never
                 );
         }
@@ -80,7 +80,7 @@ namespace InboxIntelligence.Tests.EmailServiceTests
                 }
             };
 
-            _emailRepoMock.Setup(repo => repo.GetExistingMessageIdsAsync(It.IsAny<IEnumerable<string>>()))
+            _emailRepoMock.Setup(repo => repo.GetExistingMessageIdsAsync(It.IsAny<IEnumerable<string>>(), CancellationToken.None))
                       .ReturnsAsync(new HashSet<string>());
             _mapperMock.Setup(mapper => mapper.Map<List<Email>>(It.IsAny<IEnumerable<BulkEmailImportDTO>>()))
                       .Returns((IEnumerable<BulkEmailImportDTO> source) =>
@@ -105,7 +105,7 @@ namespace InboxIntelligence.Tests.EmailServiceTests
                 mock => mock.AddRangeAsync(
                     It.Is<IEnumerable<Email>>(
                         em => em.Count() == 1 && em.First().ExternalMessageId == "email-new-001"),
-                    It.IsAny<IEnumerable<ContactEmail>>()),
+                    It.IsAny<IEnumerable<ContactEmail>>(), CancellationToken.None),
                 Times.Once);
         }
 
@@ -133,7 +133,7 @@ namespace InboxIntelligence.Tests.EmailServiceTests
 
             _emailRepoMock
                 .Setup(repo => repo.GetExistingMessageIdsAsync(
-                    It.IsAny<IEnumerable<string>>()))
+                    It.IsAny<IEnumerable<string>>(), CancellationToken.None))
                 .ReturnsAsync(new HashSet<string>());
 
             _mapperMock
@@ -161,7 +161,7 @@ namespace InboxIntelligence.Tests.EmailServiceTests
                 repo => repo.AddRangeAsync(
                     It.Is<IEnumerable<Email>>(
                         inserted => inserted.Count() == 1),
-                    It.IsAny<IEnumerable<ContactEmail>>()),
+                    It.IsAny<IEnumerable<ContactEmail>>(), CancellationToken.None),
                 Times.Once);
         }
 
@@ -185,13 +185,13 @@ namespace InboxIntelligence.Tests.EmailServiceTests
 
             _emailRepoMock.Verify(
                 repo => repo.GetExistingMessageIdsAsync(
-                    It.IsAny<IEnumerable<string>>()),
+                    It.IsAny<IEnumerable<string>>(), CancellationToken.None),
                 Times.Never);
 
             _emailRepoMock.Verify(
                 repo => repo.AddRangeAsync(
                     It.IsAny<IEnumerable<Email>>(),
-                    It.IsAny<IEnumerable<ContactEmail>>()),
+                    It.IsAny<IEnumerable<ContactEmail>>(), CancellationToken.None),
                 Times.Never);
         }
 
@@ -210,13 +210,13 @@ namespace InboxIntelligence.Tests.EmailServiceTests
 
             _emailRepoMock.Verify(
                 repo => repo.GetExistingMessageIdsAsync(
-                    It.IsAny<IEnumerable<string>>()),
+                    It.IsAny<IEnumerable<string>>(), CancellationToken.None),
                 Times.Never);
 
             _emailRepoMock.Verify(
                 repo => repo.AddRangeAsync(
                     It.IsAny<IEnumerable<Email>>(),
-                    It.IsAny<IEnumerable<ContactEmail>>()),
+                    It.IsAny<IEnumerable<ContactEmail>>(), CancellationToken.None),
                 Times.Never);
         }
 

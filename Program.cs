@@ -63,6 +63,9 @@ builder.Services.AddHttpClient<IEmbeddingService, GeminiEmbeddingService>();
 // Register GeminiAnswerService for IGeminiAnswerService
 builder.Services.AddHttpClient<IGeminiAnswerService, GeminiAnswerService>();
 
+// Register GeminiAgentClient for IGeminiAgentClient
+builder.Services.AddHttpClient<IGeminiAgentClient, GeminiAgentClient>();
+
 // Register global exception handler
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -81,6 +84,9 @@ builder.Services.AddDbContext<InboxIntelligenceDbContext>(options =>
 // Register Service, Repositories
 builder.Services.AddScoped<IEmailRepository, EmailRepository>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+
+// Register ToolExecutor
+builder.Services.AddScoped<EmailToolExecutor>();
 
 // Mappings
 builder.Services.AddAutoMapper(

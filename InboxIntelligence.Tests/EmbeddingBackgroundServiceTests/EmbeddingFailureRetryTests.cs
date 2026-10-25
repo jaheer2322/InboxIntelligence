@@ -29,7 +29,7 @@ namespace InboxIntelligence.Tests.EmbeddingBackgroundServiceTests
             .ThrowsAsync(new InvalidOperationException("Simulated embedding failure"));
             
             emailRepoMock
-            .Setup(r => r.IncrementEmbeddingFailureCountAsync(email))
+            .Setup(r => r.IncrementEmbeddingFailureCountAsync(email, CancellationToken.None))
             .Returns(() =>
             {
                 email.EmbeddingFailureCount++;
@@ -51,13 +51,13 @@ namespace InboxIntelligence.Tests.EmbeddingBackgroundServiceTests
             Assert.AreEqual(1, email.EmbeddingFailureCount);
 
             emailRepoMock.Verify(
-                r => r.IncrementEmbeddingFailureCountAsync(email),
+                r => r.IncrementEmbeddingFailureCountAsync(email, CancellationToken.None),
                 Times.Once);
 
             emailRepoMock.Verify(
                 r => r.SaveEmbeddingAsync(
                     It.IsAny<Email>(),
-                    It.IsAny<float[]>()),
+                    It.IsAny<float[]>(), CancellationToken.None),
                 Times.Never);
         }
 
@@ -110,7 +110,7 @@ namespace InboxIntelligence.Tests.EmbeddingBackgroundServiceTests
             Assert.AreEqual(0, email.EmbeddingFailureCount);
 
             repository.Verify(
-                r => r.IncrementEmbeddingFailureCountAsync(It.IsAny<Email>()),
+                r => r.IncrementEmbeddingFailureCountAsync(It.IsAny<Email>(), CancellationToken.None),
                 Times.Never);
         }
     }
