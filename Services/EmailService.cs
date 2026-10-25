@@ -48,7 +48,8 @@ namespace InboxIntelligence.Services
             var emails = await GetSimilarEmailsAsync(query,
                                                      contact,
                                                      startDate,
-                                                     endDate);
+                                                     endDate,
+                                                     cancellationToken);
 
             if (emails.Count == 0)
                 return "I couldn't find relevant emails to answer this question.";
@@ -69,7 +70,7 @@ namespace InboxIntelligence.Services
                 query, emailContext, cancellationToken);
         }
 
-        public async Task<int> ImportEmailsAsync(IEnumerable<BulkEmailImportDTO> emails)
+        public async Task<int> ImportEmailsAsync(IEnumerable<BulkEmailImportDTO> emails, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(emails);
             
@@ -91,7 +92,7 @@ namespace InboxIntelligence.Services
                                        .Distinct() // Avoids duplicate in same batch
                                        .ToList();
 
-            var existingIds = await _emailRepo.GetExistingMessageIdsAsync(incomingIds);
+            var existingIds = await _emailRepo.GetExistingMessageIdsAsync(incomingIds, cancellationToken);
             var newEmailDTOs = emailDTOs.DistinctBy(e => e.MessageId)
                                         .Where(e => !existingIds.Contains(e.MessageId))
                                         .ToList();
@@ -126,7 +127,7 @@ namespace InboxIntelligence.Services
                 }
             }
 
-            await _emailRepo.AddRangeAsync(newEmails, contactMappings);
+            await _emailRepo.AddRangeAsync(newEmails, contactMappings, cancellationToken);
 
             return newEmails.Count;
         }
@@ -134,12 +135,13 @@ namespace InboxIntelligence.Services
                                                     string query, 
                                                     string? contact,
                                                     DateTime? startDate, 
-                                                    DateTime? endDate)
+                                                    DateTime? endDate,
+                                                    CancellationToken cancellationToken = default)
         {
             const int topK = 5;
             const int rrfK = 60;
 
-            var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(query);
+            var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(query, cancellationToken);
 
             if (startDate.HasValue)
             {
@@ -157,7 +159,8 @@ namespace InboxIntelligence.Services
                 queryEmbedding,
                 contact,
                 startDate, endDate,
-                topK);
+                topK,
+                cancellationToken);
 
             var keywordResults = await _emailRepo.GetEmailsByKeywordAsync(
                 query,
@@ -214,7 +217,8 @@ namespace InboxIntelligence.Services
         public async Task<List<EmailResponseDTO>> GetConversationEmailsAsync(string conversationId, 
                                                                              DateTime? startDate, 
                                                                              DateTime? endDate,
-                                                                             int limit)
+                                                                             int limit,
+                                                                             CancellationToken cancellationToken = default)
         {
             if (startDate.HasValue)
             {
@@ -227,11 +231,11 @@ namespace InboxIntelligence.Services
                 endDate = DateTime.SpecifyKind(
                     endDate.Value, DateTimeKind.Utc);
             }
-            var emails = await _emailRepo.GetConversationEmailsAsync(conversationId, startDate, endDate, limit);
+            var emails = await _emailRepo.GetConversationEmailsAsync(conversationId, startDate, endDate, limit, cancellationToken);
             return _mapper.Map<List<EmailResponseDTO>>(emails);
         }
 
-        public async Task<List<EmailResponseDTO>> GetEmailsByContactAsync(string contact, DateTime? startDate, DateTime? endDate, int limit = 50)
+        public async Task<List<EmailResponseDTO>> GetEmailsByContactAsync(string contact, DateTime? startDate, DateTime? endDate, int limit = 50, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(contact);
 
@@ -262,7 +266,7 @@ namespace InboxIntelligence.Services
                     endDate.Value, DateTimeKind.Utc);
             }
 
-            var emails = await _emailRepo.GetEmailsByContactAsync(contact, startDate, endDate, limit);
+            var emails = await _emailRepo.GetEmailsByContactAsync(contact, startDate, endDate, limit, cancellationToken);
             return _mapper.Map<List<EmailResponseDTO>>(emails);
         }
     }
