@@ -15,7 +15,8 @@ namespace InboxIntelligence.Repositories
                             string? contact,
                             DateTime? startDate, 
                             DateTime? endDate, 
-                            int topK);
+                            int topK,
+                            CancellationToken cancellationToken = default);
         Task<List<Email>> GetEmailsByKeywordAsync(
                             string query,
                             string? contact,
