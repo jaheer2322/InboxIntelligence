@@ -4,17 +4,19 @@ namespace InboxIntelligence.Services
 {
     public interface IEmailService
     {
-        Task<int> ImportEmailsAsync(IEnumerable<BulkEmailImportDTO> emails);
+        Task<int> ImportEmailsAsync(IEnumerable<BulkEmailImportDTO> emails, CancellationToken cancellationToken = default);
         Task<List<EmailResponseDTO>> GetSimilarEmailsAsync(
                                         string query,
                                         string? contact,
                                         DateTime? startDate,
-                                        DateTime? endDate);
+                                        DateTime? endDate,
+                                        CancellationToken cancellationToken = default);
         Task<List<EmailResponseDTO>> GetConversationEmailsAsync(
                                         string conversationId, 
                                         DateTime? startDate,
                                         DateTime? endDate,
-                                        int limit);
+                                        int limit,
+                                        CancellationToken cancellationToken = default);
         Task<string> AskAsync(
                         string query,
                         string? contact,
@@ -25,6 +27,7 @@ namespace InboxIntelligence.Services
             string contact,
             DateTime? startDate,
             DateTime? endDate,
-            int limit = 50);
+            int limit = 50,
+            CancellationToken cancellationToken = default);
     }
 }
