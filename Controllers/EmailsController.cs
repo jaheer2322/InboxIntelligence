@@ -1,11 +1,13 @@
-﻿using InboxIntelligence.Models.DTOs;
+﻿using Asp.Versioning;
+using InboxIntelligence.Models.DTOs;
 using InboxIntelligence.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InboxIntelligence.Controllers
 {
     [ApiController]
-    [Route("api/[controller]/")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]/")]
     public class EmailsController : ControllerBase
     {
         private readonly IEmailService _emailService;
