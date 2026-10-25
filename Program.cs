@@ -10,13 +10,15 @@ using Asp.Versioning;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Logger
+var debugLogs = builder.Configuration.GetValue<bool>("DebugLogs");
+
+// Keep warnings/errors visible; enable debug diagnostics only when requested.
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
-    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .MinimumLevel.Is(debugLogs ? LogEventLevel.Debug : LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.AspNetCore", debugLogs ? LogEventLevel.Warning : LogEventLevel.Error)
     .MinimumLevel.Override(
     "Microsoft.EntityFrameworkCore.Database.Command",
-    LogEventLevel.Warning)
+    (debugLogs ? LogEventLevel.Warning : LogEventLevel.Error))
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .WriteTo.File(
