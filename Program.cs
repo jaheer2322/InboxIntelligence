@@ -15,10 +15,21 @@ var debugLogs = builder.Configuration.GetValue<bool>("DebugLogs");
 // Keep warnings/errors visible; enable debug diagnostics only when requested.
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Is(debugLogs ? LogEventLevel.Debug : LogEventLevel.Warning)
-    .MinimumLevel.Override("Microsoft.AspNetCore", debugLogs ? LogEventLevel.Warning : LogEventLevel.Error)
     .MinimumLevel.Override(
-    "Microsoft.EntityFrameworkCore.Database.Command",
-    (debugLogs ? LogEventLevel.Warning : LogEventLevel.Error))
+        "Microsoft",
+        debugLogs ? LogEventLevel.Warning : LogEventLevel.Error)
+    .MinimumLevel.Override(
+        "Microsoft.EntityFrameworkCore",
+        debugLogs ? LogEventLevel.Warning : LogEventLevel.Error)
+    .MinimumLevel.Override(
+        "Microsoft.EntityFrameworkCore.Database.Command",
+        debugLogs ? LogEventLevel.Warning : LogEventLevel.Error)
+    .MinimumLevel.Override(
+        "Microsoft.EntityFrameworkCore.Infrastructure",
+        debugLogs ? LogEventLevel.Warning : LogEventLevel.Error)
+    .MinimumLevel.Override(
+        "Microsoft.EntityFrameworkCore.Database.Connection",
+        debugLogs ? LogEventLevel.Warning : LogEventLevel.Error)
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .WriteTo.File(
