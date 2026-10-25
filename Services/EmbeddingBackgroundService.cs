@@ -34,9 +34,6 @@ namespace InboxIntelligence.Services
 
                 await repository.SaveEmbeddingAsync(email, embedding);
 
-                _logger.LogInformation(
-                    "Embedding generated for email {EmailId}.",
-                    email.Id);
             }
             catch (OperationCanceledException)
                 when (stoppingToken.IsCancellationRequested)
