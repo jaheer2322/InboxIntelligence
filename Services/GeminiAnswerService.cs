@@ -68,19 +68,6 @@ namespace InboxIntelligence.Services
                 {emailContext}
                 """;
 
-            var logPrompts = _configuration.GetValue<bool>("Gemini:LogPrompts");
-
-            if (logPrompts)
-            {
-                _logger.LogDebug(
-                    "Gemini system instruction:\n{SystemInstruction}",
-                    systemInstruction);
-
-                _logger.LogDebug(
-                    "Gemini user prompt:\n{UserPrompt}",
-                    userPrompt);
-            }
-
             request.Content = JsonContent.Create(new
             {
                 systemInstruction = new
@@ -113,10 +100,6 @@ namespace InboxIntelligence.Services
                 }
             });
 
-            _logger.LogInformation(
-                "Retrieved email context sent to Gemini:\n{EmailContext}",
-                emailContext);
-
             using var response = await _httpClient.SendAsync(
                 request, cancellationToken);
 
@@ -126,33 +109,7 @@ namespace InboxIntelligence.Services
                 await response.Content.ReadAsStringAsync(
                     cancellationToken));
 
-            _logger.LogInformation($"LLM Response: {document.RootElement.GetRawText()}");
             var root = document.RootElement;
-
-            // Log response-level metadata when available.
-            var responseId = root.TryGetProperty(
-                "responseId", out var responseIdElement)
-                ? responseIdElement.GetString()
-                : null;
-
-            var modelVersion = root.TryGetProperty(
-                "modelVersion", out var modelVersionElement)
-                ? modelVersionElement.GetString()
-                : null;
-
-            _logger.LogInformation(
-                "Gemini response metadata: ResponseId={ResponseId}, " +
-                "ModelVersion={ModelVersion}",
-                responseId,
-                modelVersion);
-
-            if (root.TryGetProperty("usageMetadata", out var usage))
-            {
-                _logger.LogInformation(
-                    "Gemini token usage: {UsageMetadata}",
-                    usage.GetRawText());
-            }
-
 
             if (!document.RootElement.TryGetProperty(
                     "candidates", out var candidates) ||
@@ -163,15 +120,6 @@ namespace InboxIntelligence.Services
             }
 
             var candidate = candidates[0];
-
-            var finishReason = candidate.TryGetProperty(
-                "finishReason", out var finishReasonElement)
-            ? finishReasonElement.GetString()
-            : null;
-
-            _logger.LogInformation(
-                "Gemini finish reason: {FinishReason}",
-                finishReason);
 
             if (!candidate.TryGetProperty("content", out var content) ||
                 !content.TryGetProperty("parts", out var parts))
@@ -208,7 +156,7 @@ namespace InboxIntelligence.Services
 
             if (!string.IsNullOrWhiteSpace(thoughtSummary))
             {
-                _logger.LogInformation(
+                _logger.LogDebug(
                     "Gemini thought summary: {ThoughtSummary}",
                     thoughtSummary);
             }
@@ -221,12 +169,8 @@ namespace InboxIntelligence.Services
                     "Gemini returned an empty answer.");
             }
 
-            _logger.LogInformation("LLM output: {Answer}", answer);
-
             return answer;
 
-            throw new InvalidOperationException(
-                "Gemini returned an empty answer.");
         }
     }
 }
