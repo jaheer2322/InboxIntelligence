@@ -51,9 +51,9 @@ namespace InboxIntelligence.Controllers
         }
 
         [HttpPost("bulk-import")]
-        public async Task<ActionResult> BulkImportEmails([FromBody] List<BulkEmailImportDTO> emailDTOs)
+        public async Task<ActionResult> BulkImportEmails([FromBody] List<BulkEmailImportDTO> emailDTOs, CancellationToken cancellationToken)
         {
-            var importedCount = await _emailService.ImportEmailsAsync(emailDTOs);
+            var importedCount = await _emailService.ImportEmailsAsync(emailDTOs, cancellationToken);
             return Ok(new { message = "Import successfull", importedCount });
         }
 
@@ -61,7 +61,8 @@ namespace InboxIntelligence.Controllers
         public async Task<ActionResult> SearchEmails(
             [FromBody] EmailSearchRequestDTO request,
             [FromQuery] DateTime? startDate,
-            [FromQuery] DateTime? endDate)
+            [FromQuery] DateTime? endDate,
+            CancellationToken cancellationToken)
         {
             if(string.IsNullOrWhiteSpace(request.Query))
             {
@@ -79,7 +80,7 @@ namespace InboxIntelligence.Controllers
                 request.Contact = null;
             }
 
-            var similarEmails = await _emailService.GetSimilarEmailsAsync(request.Query, request.Contact, startDate, endDate);
+            var similarEmails = await _emailService.GetSimilarEmailsAsync(request.Query, request.Contact, startDate, endDate, cancellationToken);
             
             if (similarEmails.Count == 0) return Ok(new { Message = "Sorry! No relavant emails found!" });
             
@@ -91,7 +92,8 @@ namespace InboxIntelligence.Controllers
             string conversationId,
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
-            [FromQuery] int limit = 50)
+            [FromQuery] int limit = 50,
+            CancellationToken cancellationToken = default)
         {
             if (startDate.HasValue && endDate.HasValue &&
                 startDate.Value > endDate.Value)
@@ -106,7 +108,8 @@ namespace InboxIntelligence.Controllers
                 conversationId,
                 startDate,
                 endDate,
-                limit);
+                limit,
+                cancellationToken);
 
             return Ok(emails);
         }
