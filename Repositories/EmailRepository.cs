@@ -10,11 +10,9 @@ namespace InboxIntelligence.Repositories
     public class EmailRepository : IEmailRepository
     {
         private readonly InboxIntelligenceDbContext _dbContext; 
-        private readonly ILogger<EmailRepository> _logger;
-        public EmailRepository(InboxIntelligenceDbContext dbContext, ILogger<EmailRepository> logger)
+        public EmailRepository(InboxIntelligenceDbContext dbContext)
         {
             _dbContext = dbContext;
-            _logger = logger;
         }
 
         public async Task<HashSet<string>> GetExistingMessageIdsAsync(IEnumerable<string> messageIds)
@@ -125,12 +123,7 @@ namespace InboxIntelligence.Repositories
                                     .Rank(EF.Functions.ToTsQuery("english", queryText)))
                                 .Take(topK);
 
-            _logger.LogInformation("Keyword query text: {QueryText}", queryText);
-            _logger.LogInformation("Keyword SQL: {Sql}", keywordQuery.ToQueryString());
-
             var results = await keywordQuery.ToListAsync();
-
-            _logger.LogInformation("Keyword result count: {Count}", results.Count);
 
             return results;
         }
