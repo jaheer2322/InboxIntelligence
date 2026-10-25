@@ -163,7 +163,8 @@ namespace InboxIntelligence.Services
                 query,
                 contact,
                 startDate, endDate,
-                topK);
+                topK,
+                cancellationToken);
 
             var rrfScores = new Dictionary<Guid, double>();
 
