@@ -50,7 +50,9 @@ public static class EmailToolDefinitions
             name = "GetConversationEmails",
             description =
                 "Retrieve emails from a specific conversation. " +
-                "Use a conversation ID obtained from previous search results.",
+                "Use a conversation ID obtained from previous search results." +
+                "Results are ordered by SentAt descending (newest first). " +
+                "When limit is 1, the result is the most recent email from that contact.",
             parameters = new
             {
                 type = "object",
@@ -90,7 +92,9 @@ public static class EmailToolDefinitions
             name = "GetEmailsByContact",
             description =
                 "Retrieve emails associated with a specific contact. " +
-                "Use when the user asks about emails involving a person or email address.",
+                "Use when the user asks about emails involving a person or email address." +
+                "Results are ordered by SentAt descending (newest first). " +
+                "When limit is 1, the result is the most recent email from that contact.",
             parameters = new
             {
                 type = "object",

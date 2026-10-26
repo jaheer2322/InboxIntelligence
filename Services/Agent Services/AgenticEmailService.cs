@@ -9,6 +9,7 @@ public sealed class AgenticEmailService : IAgenticEmailService
     private readonly IGeminiAgentClient _geminiClient;
     private readonly EmailToolExecutor _toolExecutor;
     private readonly ILogger<AgenticEmailService> _logger;
+    private readonly GeminiInteractionState _interactionState;
     private readonly bool _debugLogs;
 
     private const string SystemInstruction =
@@ -28,11 +29,13 @@ public sealed class AgenticEmailService : IAgenticEmailService
         IGeminiAgentClient geminiClient,
         EmailToolExecutor toolExecutor,
         ILogger<AgenticEmailService> logger,
+        GeminiInteractionState interactionState,
         IConfiguration configuration)
     {
         _geminiClient = geminiClient;
         _toolExecutor = toolExecutor;
         _logger = logger;
+        _interactionState = interactionState;
         _debugLogs = configuration.GetValue<bool>("DebugLogs");
     }
 
@@ -48,14 +51,23 @@ public sealed class AgenticEmailService : IAgenticEmailService
                 "Agent: Request started.");
         }
 
-        var requestBody = new
+        var previousInteractionId = _interactionState.LastInteractionId;
+
+        var requestBody = new Dictionary<string, object?>
         {
-            model = "gemini-3.1-flash-lite",
-            input = query,
-            system_instruction = SystemInstruction,
-            tools = EmailToolDefinitions.Tools,
-            store = true
+            ["model"] = "gemini-3.1-flash-lite",
+            ["input"] = query,
+            ["system_instruction"] = SystemInstruction,
+            ["tools"] = EmailToolDefinitions.Tools,
+            ["store"] = true
         };
+
+        if (previousInteractionId is not null)
+        {
+            requestBody["previous_interaction_id"] = previousInteractionId;
+        }
+
+        string? completedInteractionId = null;
 
         if (_debugLogs)
         {
@@ -72,9 +84,10 @@ public sealed class AgenticEmailService : IAgenticEmailService
         if (_debugLogs)
         {
             _logger.LogInformation(
-                "Agent: Gemini response parsed. IsToolCall={IsToolCall}, ToolName={ToolName}",
+                "Agent: Gemini response parsed. IsToolCall={IsToolCall}, ToolName={ToolName}, ToolArguments={ToolArguments}",
                 firstResult.IsToolCall,
-                firstResult.ToolName ?? "None");
+                firstResult.ToolName ?? "None",
+                firstResult.ToolArguments?.GetRawText() ?? "None");
         }
 
         // Gemini answered without requesting a tool.
@@ -88,6 +101,15 @@ public sealed class AgenticEmailService : IAgenticEmailService
             {
                 _logger.LogInformation(
                     "Agent: Request completed successfully without tool execution.");
+            }
+
+            completedInteractionId = firstResponse.RootElement
+                .GetProperty("id")
+                .GetString();
+
+            if (!string.IsNullOrWhiteSpace(completedInteractionId))
+            {
+                _interactionState.LastInteractionId = completedInteractionId;
             }
 
             return ans;
@@ -169,9 +191,10 @@ public sealed class AgenticEmailService : IAgenticEmailService
         if (_debugLogs)
         {
             _logger.LogInformation(
-                "Agent: Follow-up response parsed. IsToolCall={IsToolCall}, ToolName={ToolName}",
+                "Agent: Gemini response parsed. IsToolCall={IsToolCall}, ToolName={ToolName}, ToolArguments={ToolArguments}",
                 finalResult.IsToolCall,
-                finalResult.ToolName ?? "None");
+                finalResult.ToolName ?? "None",
+                finalResult.ToolArguments?.GetRawText() ?? "None");
         }
 
         if (finalResult.IsToolCall)
@@ -185,10 +208,19 @@ public sealed class AgenticEmailService : IAgenticEmailService
             ?? throw new InvalidOperationException(
                 "Gemini returned an empty answer.");
 
+        completedInteractionId = followUpResponse.RootElement
+            .GetProperty("id")
+            .GetString();
+
+        if (!string.IsNullOrWhiteSpace(completedInteractionId))
+        {
+            _interactionState.LastInteractionId = completedInteractionId;
+        }
+
         if (_debugLogs)
         {
             _logger.LogInformation(
-                "Agent: Request completed successfully.");
+                "Agent: Request completed successfully.\n--------------------------------------------------------------");
         }
 
         return answer;

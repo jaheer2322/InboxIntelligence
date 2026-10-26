@@ -74,6 +74,9 @@ builder.Services.AddProblemDetails();
 // Register BackgroundService (Embed queue)
 builder.Services.AddHostedService<EmbeddingBackgroundService>();
 
+// Register GeminiInteractionState as singleton
+builder.Services.AddSingleton<GeminiInteractionState>();
+
 // Register dbcontext
 builder.Services.AddDbContext<InboxIntelligenceDbContext>(options =>
 {

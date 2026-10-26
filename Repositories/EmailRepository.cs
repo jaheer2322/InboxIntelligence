@@ -138,7 +138,7 @@ namespace InboxIntelligence.Repositories
             if (startDate.HasValue) query = query.Where(e => e.SentAt >= startDate.Value);
             if (endDate.HasValue) query = query.Where(e => e.SentAt <= endDate.Value);
 
-            return await query.OrderBy(e => e.SentAt).Take(limit).ToListAsync(cancellationToken);
+            return await query.OrderByDescending(e => e.SentAt).Take(limit).ToListAsync(cancellationToken);
         }
 
         public async Task IncrementEmbeddingFailureCountAsync(Email email, CancellationToken cancellationToken = default)
@@ -164,7 +164,7 @@ namespace InboxIntelligence.Repositories
                 query = query.Where(e => e.SentAt <= endDate.Value);
 
             return await query
-                .OrderBy(e => e.SentAt)
+                .OrderByDescending(e => e.SentAt)
                 .Take(limit)
                 .ToListAsync(cancellationToken);
         }
