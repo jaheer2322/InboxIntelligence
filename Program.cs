@@ -7,6 +7,8 @@ using InboxIntelligence.Exceptions;
 using Serilog.Events;
 using Serilog;
 using Asp.Versioning;
+using Microsoft.Extensions.Http.Resilience;
+using Polly;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,8 +67,18 @@ builder.Services.AddHttpClient<IEmbeddingService, GeminiEmbeddingService>();
 builder.Services.AddHttpClient<IGeminiAnswerService, GeminiAnswerService>();
 
 // Register GeminiAgentClient for IGeminiAgentClient
-builder.Services.AddHttpClient<IGeminiAgentClient, GeminiAgentClient>();
-
+builder.Services
+    .AddHttpClient<IGeminiAgentClient, GeminiAgentClient>()
+    .AddResilienceHandler("GeminiRetry", pipeline =>
+    {
+        pipeline.AddRetry(new HttpRetryStrategyOptions
+        {
+            MaxRetryAttempts = 3,
+            Delay = TimeSpan.FromSeconds(1),
+            BackoffType = DelayBackoffType.Exponential,
+            UseJitter = true
+        });
+    });
 // Register global exception handler
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
