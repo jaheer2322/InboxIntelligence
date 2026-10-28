@@ -10,17 +10,17 @@ It uses **Retrieval-Augmented Generation (RAG)** with PostgreSQL and pgvector fo
 
 ```mermaid
 flowchart TD
-    A[User asks a question] --> B[LLM Agent]
-    B --> C{Call a tool?}
+    A[User asks a question] --> B[Gemini Agent]
+    B --> C{Request a tool call?}
 
-    C -- Yes --> D[Execute selected tool]
-    D --> E[Return results to agent]
+    C -- Yes --> D[Execute selected email tool]
+    D --> E[Return tool results to Gemini]
     E --> B
 
     C -- No --> F[Generate final answer]
-    F --> G[Answer with email citations]
+    F --> G[Return answer with email citations]
 
-    D -. Maximum 3 tool calls .-> H[Stop if limit is exceeded]
+    D -. Maximum 3 tool executions .-> H[Stop if limit is exceeded]
 ```
 
 
