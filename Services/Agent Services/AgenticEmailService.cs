@@ -1,5 +1,6 @@
 ﻿
 using System.Text.Json;
+using System.Diagnostics;
 using InboxIntelligence.Models.Agent;
 
 namespace InboxIntelligence.Services;
@@ -95,7 +96,9 @@ public sealed class AgenticEmailService : IAgenticEmailService
 
         if (_debugLogs)
         {
-            _logger.LogInformation("Agent: Request started.");
+            _logger.LogInformation("========== INBOX INTELLIGENCE: AGENT TRACE ==========");
+            _logger.LogInformation("USER -> AGENT: {UserQuery}", query);
+            _logger.LogInformation("AGENT -> GEMINI: Sending query for analysis...");
         }
 
         var previousInteractionId = _interactionState.LastInteractionId;
@@ -114,9 +117,20 @@ public sealed class AgenticEmailService : IAgenticEmailService
             requestBody["previous_interaction_id"] = previousInteractionId;
         }
 
+        var geminiTimer = Stopwatch.StartNew();
+
         using var response =
             await _geminiClient.CreateInteractionAsync(
                 requestBody, cancellationToken);
+
+        geminiTimer.Stop();
+
+        if (_debugLogs)
+        {
+            _logger.LogInformation(
+                "GEMINI -> AGENT: Response received in {ElapsedMs} ms.",
+                geminiTimer.ElapsedMilliseconds);
+        }
 
         var currentResult = AgentStepParser.Parse(response);
 
@@ -134,13 +148,25 @@ public sealed class AgenticEmailService : IAgenticEmailService
         {
             if (_debugLogs)
             {
-                _logger.LogInformation(
-                    "Agent: Gemini response parsed. IsToolCall={IsToolCall}, " +
-                    "ToolName={ToolName}, ToolCount={ToolCount}, Arguments = {Arguments}",
-                    currentResult.IsToolCall,
-                    currentResult.ToolName ?? "None",
-                    toolCount,
-                    currentResult.ToolArguments);
+                if (currentResult.IsToolCall)
+                {
+                    _logger.LogInformation(
+                        "GEMINI -> AGENT: Tool requested: {ToolName}",
+                        currentResult.ToolName);
+
+                    var rewrittenQuery = GetSearchQuery(currentResult.ToolArguments);
+                    if (!string.IsNullOrWhiteSpace(rewrittenQuery))
+                    {
+                        _logger.LogInformation(
+                            "AGENT SEARCH QUERY: {SearchQuery}",
+                            rewrittenQuery);
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "GEMINI -> AGENT: Final answer received. No further tool call requested.");
+                }
             }
 
             // Gemini has finished and returned its answer.
@@ -154,8 +180,8 @@ public sealed class AgenticEmailService : IAgenticEmailService
 
                 if (_debugLogs)
                 {
-                    _logger.LogInformation(
-                        "Agent: Request completed successfully.");
+                    _logger.LogInformation("AGENT -> USER: Returning final answer.");
+                    _logger.LogInformation("========== AGENT TRACE COMPLETED ==========");
                 }
 
                 return answer;
@@ -172,15 +198,32 @@ public sealed class AgenticEmailService : IAgenticEmailService
             if (_debugLogs)
             {
                 _logger.LogInformation(
-                    "Agent: Executing tool {ToolName} ({ToolNumber}/{MaxTools}).",
+                    "AGENT -> TOOL: Executing {ToolName} ({ToolNumber}/{MaxTools})...",
                     currentResult.ToolName,
                     toolCount + 1,
                     maxToolExecutions);
             }
 
             // Execute the requested allowlisted tool.
+            var toolTimer = Stopwatch.StartNew();
+
             var toolResult = await _toolExecutor.ExecuteAsync(
                 currentResult, cancellationToken);
+
+            toolTimer.Stop();
+
+            if (_debugLogs)
+            {
+                var resultCount = toolResult is System.Collections.ICollection collection
+                    ? collection.Count.ToString()
+                    : "not available";
+
+                _logger.LogInformation(
+                    "TOOL -> AGENT: {ToolName} completed | Results: {ResultCount} | Duration: {ElapsedMs} ms",
+                    currentResult.ToolName,
+                    resultCount,
+                    toolTimer.ElapsedMilliseconds);
+            }
 
             var serializedResult = JsonSerializer.Serialize(toolResult);
 
@@ -209,9 +252,26 @@ public sealed class AgenticEmailService : IAgenticEmailService
             }
             };
 
+            if (_debugLogs)
+            {
+                _logger.LogInformation(
+                    "AGENT -> GEMINI: Sending tool results for further analysis...");
+            }
+
+            var followUpTimer = Stopwatch.StartNew();
+
             using var followUpResponse =
                 await _geminiClient.CreateInteractionAsync(
                     followUpRequest, cancellationToken);
+
+            followUpTimer.Stop();
+
+            if (_debugLogs)
+            {
+                _logger.LogInformation(
+                    "GEMINI -> AGENT: Follow-up response received in {ElapsedMs} ms.",
+                    followUpTimer.ElapsedMilliseconds);
+            }
 
             // Advance the interaction chain before processing the next step.
             currentInteractionId = followUpResponse.RootElement
@@ -226,5 +286,29 @@ public sealed class AgenticEmailService : IAgenticEmailService
 
             currentResult = AgentStepParser.Parse(followUpResponse);
         }
+    }
+
+    private static string? GetSearchQuery(object? toolArguments)
+    {
+        if (toolArguments is not JsonElement arguments ||
+            arguments.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        foreach (var property in arguments.EnumerateObject())
+        {
+            if (string.Equals(
+                property.Name,
+                "query",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return property.Value.ValueKind == JsonValueKind.String
+                    ? property.Value.GetString()
+                    : property.Value.ToString();
+            }
+        }
+
+        return null;
     }
 }
