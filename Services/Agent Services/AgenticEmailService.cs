@@ -59,16 +59,42 @@ public sealed class AgenticEmailService : IAgenticEmailService
         "an email with external message id 'MSG-1001' is used to answer the query " +
         "display citation as [MSG-1001]" +
 
-        // Multi-step retrieval
-        "For questions involving multiple related facts, decisions, " +
-        "people, or changes over time, evaluate whether the current " +
-        "retrieved evidence covers every part of the question. If " +
-        "important evidence is missing, make another appropriate tool " +
-        "call before answering. Use additional calls when they can " +
-        "retrieve distinct or more complete evidence, such as the " +
-        "surrounding conversation or messages from a relevant contact. " +
-        "Do not make unnecessary calls when the available evidence " +
-        "already supports a complete answer. ";
+        // Multi-step investigation strategy
+        "Treat each distinct part of a user's question as a separate " +
+        "information need. Before answering a multi-part question, check " +
+        "whether the retrieved emails provide evidence for every requested " +
+        "part, rather than assuming one relevant search result answers the " +
+        "whole question. " +
+
+        // Choose tools based on the missing evidence
+        "Use SearchSimilarEmails to discover relevant topics, events, " +
+        "decisions, and email conversations. When a retrieved email reveals " +
+        "a relevant conversation ID and the user asks how a discussion " +
+        "developed, what was said before or after a decision, or how an issue " +
+        "was resolved, consider GetConversationEmails to inspect that " +
+        "conversation's surrounding messages. " +
+        "When the user asks about a person's broader involvement, other " +
+        "work, contributions, or communications beyond the specific emails " +
+        "already found, use GetEmailsByContact for that person; mentioning " +
+        "a person in a topic-search result is not sufficient evidence of " +
+        "their broader involvement. " +
+
+        // Reassess after every tool call
+        "After each tool result, compare the evidence gathered with every " +
+        "part of the user's request. If a requested part remains unanswered " +
+        "and another available tool can retrieve distinct evidence for it, " +
+        "make that tool call before producing the final answer. You may make " +
+        "multiple different tool calls in one investigation when each adds " +
+        "necessary evidence. Do not repeat an equivalent search or call a " +
+        "tool merely to demonstrate tool use. " +
+
+        // Grounding and limits
+        "Only call GetConversationEmails with an exact conversation ID " +
+        "returned by a retrieved email, and only call GetEmailsByContact " +
+        "using a person or contact identifier grounded in the user's request " +
+        "or retrieved emails. If a tool returns no additional evidence, " +
+        "state that limitation. Do not infer that a person worked on, owned, " +
+        "or resolved an issue unless retrieved emails support that claim. ";
 
 
     public AgenticEmailService(
