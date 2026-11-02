@@ -21,6 +21,12 @@ Log.Logger = new LoggerConfiguration()
         "Microsoft",
         debugLogs ? LogEventLevel.Warning : LogEventLevel.Error)
     .MinimumLevel.Override(
+        "System.Net.Http.HttpClient",
+        LogEventLevel.Warning)
+    .MinimumLevel.Override(
+        "Microsoft.Extensions.Http",
+        LogEventLevel.Warning)
+    .MinimumLevel.Override(
         "Microsoft.EntityFrameworkCore",
         debugLogs ? LogEventLevel.Warning : LogEventLevel.Error)
     .MinimumLevel.Override(
