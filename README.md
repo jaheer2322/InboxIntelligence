@@ -1,57 +1,67 @@
-# Inbox Intelligence — V1
+# Inbox Intelligence
 
-**An Email Intelligence System Powered by Retrieval-Augmented Generation (RAG)**
+Inbox Intelligence is an email intelligence backend that lets users ask natural-language questions about emails stored in a database and receive context-aware answers grounded in email evidence.
 
-Inbox Intelligence is a backend application that enables users to ask natural-language questions about the contents of an email mailbox and receive accurate, context-aware answers grounded in the emails stored in its database.
+It uses **Retrieval-Augmented Generation (RAG)** with PostgreSQL and pgvector for semantic search, hybrid retrieval combining semantic and keyword search, and Reciprocal Rank Fusion (RRF) to rerank results. Gemini generates answers with supporting email citations.
 
-The system uses semantic search and keyword-based retrieval to identify relevant emails, retrieves additional context from related conversations, and provides the selected evidence to a Large Language Model (LLM) to generate answers with source citations.
+**V2 — Agentic Retrieval:** Extends the retrieval pipeline with Gemini-powered tool orchestration. The model can dynamically select from allowlisted email tools, inspect retrieved evidence, and perform up to three tool executions per request before producing a final answer. Polly-based HTTP resilience retries transient failures when communicating with Gemini.
 
-## Retrieval Flow
-
-The diagram below shows the current retrieval and answer-generation flow. Query rewriting and automatic contact extraction are planned enhancements and are not yet part of this flow.
+## V2 — Agentic Retrieval Flow
 
 ```mermaid
 flowchart TD
-    A["User asks a question"] --> B["Streamlit frontend"]
-    B --> C["POST /api/Emails/ask"]
-    C --> D["EmailsController<br/>Validate question and date range"]
-    D --> E["EmailService.AskAsync"]
+    A[User asks a question] --> B[Gemini Agent]
+    B --> C{Request a tool call?}
 
-    E --> F["Generate query embedding"]
-    F --> G["Semantic search<br/>Cosine distance"]
-    E --> H["Keyword search<br/>PostgreSQL full-text search"]
+    C -- Yes --> D[Execute selected email tool]
+    D --> E[Return tool results to Gemini]
+    E --> B
 
-    G --> I[("PostgreSQL<br/>Emails + pgvector")]
-    H --> I
+    C -- No --> F[Generate final answer]
+    F --> G[Return answer with email citations]
 
-    I --> J["Top 5 semantic results"]
-    I --> K["Top 5 keyword results"]
-
-    J --> L["Reciprocal Rank Fusion (RRF)<br/>Combine result rankings"]
-    K --> L
-
-    L --> M["Rank combined email results"]
-    M --> N{"Any relevant emails?"}
-    N -- "No" --> O["Return no relevant emails found"]
-    N -- "Yes" --> P["Build email context<br/>Message ID, conversation ID, subject,<br/>sender, sent date, and body"]
-    P --> Q["Gemini answer generation<br/>Original question + retrieved context"]
-    Q --> R["Return answer with email ID citations"]
-
-    classDef api fill:#E8F1FF,stroke:#4778C7,color:#17365D
-    classDef retrieval fill:#FFF2D9,stroke:#C48A2C,color:#674500
-    classDef database fill:#E5F5EA,stroke:#39845A,color:#17482B
-    classDef llm fill:#F0E8FF,stroke:#8662B3,color:#39235B
-
-    class A,B,C,D,E api
-    class F,G,H,J,K,L,M retrieval
-    class I database
-    class P,Q,R,O llm
+    D -. Maximum 3 tool executions .-> H[Stop if limit is exceeded]
 ```
 
-### How retrieval works
 
-1. **Semantic search** generates an embedding for the user's question and retrieves the closest email vectors.
-2. **Keyword search** uses PostgreSQL full-text search over email subjects and bodies.
-3. **Contact and date filters**, when supplied, constrain both retrieval paths.
-4. **Reciprocal Rank Fusion (RRF)** combines the two ranked result lists into one ranking.
-5. **Answer generation** sends the original question and retrieved email context to Gemini. The model is instructed to answer from the supplied evidence and cite supporting emails using their `ExternalMessageId`.
+### Available tools
+
+- `SearchSimilarEmails` — retrieves relevant emails using the search pipeline.
+- `GetConversationEmails` — retrieves emails belonging to a conversation.
+- `GetEmailsByContact` — retrieves emails associated with a contact.
+
+### Key design points
+
+- **Grounded answers:** Responses should be based on retrieved email evidence and include message-ID citations.
+- **Bounded orchestration:** A maximum of three tool executions per request prevents unbounded tool loops.
+- **Hybrid retrieval:** Semantic and keyword search results are combined and reranked using RRF.
+- **Resilience:** Polly retries transient HTTP failures from the Gemini client.
+
+## Retrieval Evaluation Results
+
+The retrieval pipeline was evaluated against a fixed golden dataset of 12 questions using the real PostgreSQL + pgvector retrieval implementation and Gemini-generated query embeddings. The evaluation measures the final ranking produced by hybrid retrieval (semantic search + PostgreSQL full-text search) combined with Reciprocal Rank Fusion (RRF).
+
+### Benchmark results
+
+| Metric | Result |
+|---|---:|
+| Answerable questions evaluated | 10 |
+| Mean Recall@5 | **1.0000 (100%)** |
+| Mean Reciprocal Rank (MRR) | **1.0000** |
+| Unanswerable questions | 2 (excluded from retrieval metrics) |
+
+All 10 answerable questions achieved Recall@5 = 1.00 and MRR = 1.00 on this dataset. In other words, every expected supporting email for each answerable question appeared within the top five final results, and the first relevant email was ranked first.
+
+### Evaluation methodology
+
+- Each golden question is associated with its expected supporting `ExternalMessageId` values.
+- The evaluation calls the production `EmailService.GetSimilarEmailsAsync` method, so it exercises query embedding generation, semantic retrieval, keyword retrieval, and final RRF ranking.
+- Metrics are calculated over the first five results of the final RRF-ranked list.
+- **Recall@5** measures the fraction of expected supporting emails present in the top five results.
+- **Reciprocal Rank** is the inverse rank of the first relevant result; MRR is its mean across answerable questions.
+- The two questions with no expected supporting message IDs are excluded from Recall@5 and MRR. They are reserved for a separate abstention evaluation.
+
+### Scope and limitations
+
+These results describe performance on the current 12-question golden dataset; they are not a guarantee of accuracy on arbitrary mailboxes or unseen questions. The two unanswerable questions have not yet been evaluated for abstention behavior, and answer correctness, faithfulness, and citation accuracy are separate end-to-end RAG evaluation dimensions.
+
