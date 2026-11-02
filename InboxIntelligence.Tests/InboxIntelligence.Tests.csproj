@@ -8,10 +8,21 @@
 	  <OutputType>Library</OutputType>
   </PropertyGroup>
 
+  <PropertyGroup>
+	<UserSecretsId>3af9414a-2422-4b2b-a33f-dd7415a4ef3e</UserSecretsId>
+  </PropertyGroup>
+	
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.14" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageReference Include="Moq" Version="4.21.0" />
     <PackageReference Include="MSTest" Version="4.5.1" />
+  </ItemGroup>
+  
+  <ItemGroup>
+	<None Update="EvaluationTests\evaluationQuestions.json">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

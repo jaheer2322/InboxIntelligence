@@ -1,0 +1,74 @@
+[
+    {
+        "Id": "Q-01",
+        "question": "What is the final agreed cutover date and time for Project Obsidian's production database freeze, and why was it rescheduled?",
+        "expectedAnswer": "The cutover was moved from October 14 at 22:00 UTC to October 28 at 22:00 UTC because staging data reconciliation revealed a 4% discrepancy in historical ledger rollups requiring an 18-hour repair script, and October 14 conflicted with the Finance month-end close starting October 16.",
+        "supportingMessageIds": [ "MSG-1001", "MSG-1002", "MSG-1003", "MSG-1004" ]
+    },
+    {
+        "Id": "Q-02",
+        "question": "What was the final decision regarding the caching layer for Project Chimera, and what specific benchmark result caused the team to abandon DynamoDB with DAX?",
+        "expectedAnswer": "The team decided on Redis Cluster (ElastiCache Redis v7). DynamoDB with DAX was rejected because during peak simulated load (150k read ops/sec), DAX p99 latency spiked past 18ms during node failover simulations, whereas Redis Cluster maintained under 2.1ms, satisfying the sub-5ms requirement.",
+        "supportingMessageIds": [ "MSG-1009", "MSG-1010", "MSG-1011", "MSG-1012" ]
+    },
+    {
+        "Id": "Q-03",
+        "question": "How did the rate limiting specification for Project ApexGateway evolve between the initial draft and the final clarification?",
+        "expectedAnswer": "The initial draft proposed 1,000 requests per minute without clearly specifying client IP vs OAuth client ID. It was clarified that 1,000 req/min applies per authenticated Tenant Org ID ('org_id' in JWT), while unauthenticated endpoints maintain a separate IP throttle of 60 req/min to avoid breaking enterprise clients behind NAT proxies.",
+        "supportingMessageIds": [ "MSG-1017", "MSG-1018", "MSG-1019", "MSG-1020" ]
+    },
+    {
+        "Id": "Q-04",
+        "question": "What are the confirmed cutover date and canary traffic rollout milestones for Project Cobalt?",
+        "expectedAnswer": "Canary traffic begins October 12 at 5%, increases to 10% on October 13, and reaches full 100% production traffic switchover on October 14 at 02:00 UTC.",
+        "supportingMessageIds": [ "MSG-1005", "MSG-1006", "MSG-1007", "MSG-1008" ]
+    },
+    {
+        "Id": "Q-05",
+        "question": "Which database was chosen for Project Drift feature flag storage, and why was Consul KV rejected?",
+        "expectedAnswer": "DynamoDB Global Tables was chosen because it achieved sub-80ms replication times. Consul KV was rejected because cross-region replication latency between us-east-1 and eu-central-1 exceeded 450ms.",
+        "supportingMessageIds": [ "MSG-1013", "MSG-1014", "MSG-1015", "MSG-1016" ]
+    },
+    {
+        "Id": "Q-06",
+        "question": "What issue occurred with contractor profiles during the Project Borealis Okta migration, and how was it resolved?",
+        "expectedAnswer": "Jira SAML attribute mappings dropped department metadata for contract staff due to a regex mismatch on contractor email suffixes (@contractor.apextech-dev.io). Devon Blake resolved it by patching the Okta user schema rule.",
+        "supportingMessageIds": [ "MSG-1021", "MSG-1022", "MSG-1023", "MSG-1024" ]
+    },
+    {
+        "Id": "Q-07",
+        "question": "What are the escalation time thresholds agreed upon for Project Siren P0 incidents?",
+        "expectedAnswer": "8 minutes for primary engineer acknowledgment, 15 minutes for secondary escalation, and 25 minutes for the engineering director.",
+        "supportingMessageIds": [ "MSG-1073", "MSG-1074", "MSG-1075", "MSG-1076" ]
+    },
+    {
+        "Id": "Q-08",
+        "question": "What is the token TTL configuration selected for Project VaultGuard, and why was the 1-hour proposal changed?",
+        "expectedAnswer": "The team standardized on a 24-hour default TTL with a max TTL of 72 hours. The initial 1-hour TTL was changed because it triggered excessive token renewal requests during batch processing peaks.",
+        "supportingMessageIds": [ "MSG-1081", "MSG-1082", "MSG-1083", "MSG-1084" ]
+    },
+    {
+        "Id": "Q-09",
+        "question": "What were the security vulnerability and subsequent remediation that occurred during Project NovaFeed's webhook configuration?",
+        "expectedAnswer": "Stefan Meyer sent a plaintext SHA-256 HMAC secret (CN_SEC_9921_PROD) via unencrypted email. Alicia Wong flagged that this violated security guidelines, rotated the secret immediately, and transferred the new secret via a shared 1Password vault.",
+        "supportingMessageIds": [ "MSG-1085", "MSG-1086", "MSG-1087", "MSG-1088" ]
+    },
+    {
+        "Id": "Q-10",
+        "question": "What is the agreed hourly aggregation schedule and grace period for the Project Orion billing pipeline?",
+        "expectedAnswer": "The cron execution was changed from HH:05 to HH:35 with a 30-minute watermarking delay window to accommodate edge gateway events that arrive up to 25 minutes late.",
+        "supportingMessageIds": [ "MSG-1049", "MSG-1050", "MSG-1051", "MSG-1052" ]
+    },
+    {
+        "Id": "Q-11",
+        "question": "What is the annual cloud spend budget allocated for Project Obsidian?",
+        "expectedAnswer": "Insufficient evidence: the provided emails discuss the cutover schedule, staging data discrepancies, and runbook reviews, but do not state the project's financial budget.",
+        "supportingMessageIds": []
+    },
+    {
+        "Id": "Q-12",
+        "question": "What penetration testing firm was hired to audit Project Sentinel before the Cloudflare WAF rollout?",
+        "expectedAnswer": "Insufficient evidence: the emails discuss Cloudflare WAF credential stuffing rules and threshold tuning, but do not mention any external penetration testing firm.",
+        "supportingMessageIds": []
+    }
+]
