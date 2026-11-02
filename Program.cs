@@ -26,6 +26,13 @@ Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override(
         "Microsoft.Extensions.Http",
         LogEventLevel.Warning)
+    // Suppress Polly/HTTP resilience retry warnings while preserving errors.
+    .MinimumLevel.Override(
+        "Microsoft.Extensions.Http.Resilience",
+        LogEventLevel.Error)
+    .MinimumLevel.Override(
+        "Polly",
+        LogEventLevel.Error)
     .MinimumLevel.Override(
         "Microsoft.EntityFrameworkCore",
         debugLogs ? LogEventLevel.Warning : LogEventLevel.Error)
