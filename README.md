@@ -2,9 +2,23 @@
 
 Inbox Intelligence is an email intelligence backend that lets users ask natural-language questions about emails stored in a database and receive context-aware answers grounded in email evidence.
 
-It uses **Retrieval-Augmented Generation (RAG)** with PostgreSQL and pgvector for semantic search, hybrid retrieval combining semantic and keyword search, and Reciprocal Rank Fusion (RRF) to rerank results. Gemini generates answers with supporting email citations.
+**V1 — Hybrid RAG:** It uses **Retrieval-Augmented Generation** with PostgreSQL and pgvector for semantic search, hybrid retrieval combining semantic and keyword search, and Reciprocal Rank Fusion (RRF) to rerank results. Gemini generates answers with supporting email citations.
 
-**V2 — Agentic Retrieval:** Extends the retrieval pipeline with Gemini-powered tool orchestration. The model can dynamically select from allowlisted email tools, inspect retrieved evidence, and perform up to three tool executions per request before producing a final answer. Polly-based HTTP resilience retries transient failures when communicating with Gemini.
+**V2 — Agentic Retrieval:** Extends the retrieval pipeline with agentic tool orchestration. The model can dynamically select from allowlisted email tools, inspect retrieved evidence, and perform up to three tool executions per request before producing a final answer. Polly-based HTTP resilience retries transient failures when communicating with Gemini.
+
+## Example Agent Runs
+
+**Multi-tool investigation:** Combines email search, contact-wide retrieval, and conversation context to explain project contributions.
+
+![Multi-tool investigation](Evaluation/all-tools2.png)
+
+**Broad mailbox question:** Summarizes recent updates across multiple active projects.
+
+![Broad mailbox question](Evaluation/latest-updates.png)
+
+**Out-of-scope question:** Declines unrelated questions without invoking retrieval tools.
+
+![Out-of-scope question](Evaluation/out-of-scope.png)
 
 ## V2 — Agentic Retrieval Flow
 
