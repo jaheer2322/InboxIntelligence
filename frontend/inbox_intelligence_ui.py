@@ -77,11 +77,9 @@ st.markdown(
       [data-testid="stChatInput"] button svg { fill:#10150b!important; }
       [data-testid="stChatMessage"] { background:#10141b!important;border:1px solid #252d37!important;border-radius:12px!important;color:var(--text)!important;padding:.8rem 1rem;margin-bottom:.75rem; }
       div.stButton>button { border-radius:8px;font-weight:600; }
-      .ii-topline { display:flex;align-items:center;justify-content:space-between;gap:1rem;border-bottom:1px solid #252c35;padding:.25rem 0 1rem;margin-bottom:2rem; }
+      .ii-topline { position:fixed;top:0;left:4.5rem;right:6.5rem;z-index:1001;display:flex;align-items:center;justify-content:space-between;gap:1rem;height:3.75rem;padding:0;margin:0;border:0;background:transparent;pointer-events:none; }
       .ii-brand { display:flex;align-items:center;gap:.7rem;color:#f4f6f8;font:700 .9rem 'Space Grotesk',sans-serif;letter-spacing:-.02em; }
       .ii-mark { display:grid;place-items:center;width:30px;height:30px;border-radius:8px;color:#11160b;background:var(--accent);font-weight:800;font-size:1rem; }
-      .ii-status { display:inline-flex;align-items:center;gap:.45rem;color:#b9c3cd;font-size:.72rem;text-transform:uppercase;letter-spacing:.12em; }
-      .ii-dot { width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block; }
       .ii-hero { padding:0 0 2rem;margin-bottom:2rem;border-bottom:1px solid #252c35; }
       .ii-kicker { color:var(--accent);font:700 .7rem 'Space Grotesk',sans-serif;letter-spacing:.18em;text-transform:uppercase;margin-bottom:1rem; }
       .ii-title { color:#f4f6f8;font:700 clamp(2.6rem,6vw,4.7rem)/.99 'Space Grotesk',sans-serif;letter-spacing:-.075em;max-width:800px;margin:0 0 1.2rem; }
@@ -95,7 +93,7 @@ st.markdown(
       .ii-empty-copy { color:#929daa;font-size:.88rem;line-height:1.7; }
       .ii-tip { border-left:2px solid var(--accent);padding:.65rem .9rem;color:#9da8b4;background:#10150f;font-size:.8rem;margin-top:1rem; }
       .ii-footer { border-top:1px solid #252c35;margin-top:3rem;padding-top:1rem;color:#65717d;font-size:.72rem;letter-spacing:.03em; }
-      @media(max-width:700px) { .block-container{padding-top:1rem}.ii-title{font-size:2.65rem}.ii-topline{align-items:flex-start} }
+      @media(max-width:700px) { .block-container{padding-top:4rem}.ii-title{font-size:2.65rem}.ii-topline{left:4rem;right:1rem;height:3.25rem} }
     
       .ii-thinking {
         display: flex; align-items: center; gap: 1rem;
@@ -184,7 +182,6 @@ st.markdown(
     """
     <div class="ii-topline">
       <div class="ii-brand"><span class="ii-mark">i.</span> INBOX INTELLIGENCE</div>
-      <div class="ii-status"><span class="ii-dot"></span> KNOWLEDGE SYSTEM / V2</div>
     </div>
     <div class="ii-hero">
       <div class="ii-kicker">PERSONAL EMAIL SEARCH</div>

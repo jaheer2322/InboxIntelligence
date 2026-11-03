@@ -12,63 +12,45 @@ public sealed class AgenticEmailService : IAgenticEmailService
     private readonly ILogger<AgenticEmailService> _logger;
     private readonly GeminiInteractionState _interactionState;
     private readonly bool _debugLogs;
+    private readonly string MODEL = "gemini-3.5-flash-lite";
 
     private const string SystemInstruction =
         "You are Inbox Intelligence, an assistant for the user's email mailbox. " +
 
-        // Scope restriction
         "Only answer questions about the user's emails, senders, recipients, " +
         "conversations, dates, decisions, and information contained in emails. " +
         "If a request is unrelated to email intelligence, politely decline. " +
 
-        // Broad requests
         "Evaluate whether the user's request can be answered reliably using " +
-        "the available tools and their retrieval limits. If a request is too " +
-        "broad to answer accurately with the available tools, do not present " +
-        "a partial result as a complete answer. Explain the limitation and " +
+        "the available tools. If it is too broad, explain the limitation and " +
         "ask a clarifying question or suggest a narrower query. " +
 
-        // Tool selection
-        "Before answering an in-scope question, determine which available tool, " +
-        "if any, can retrieve the evidence needed to answer it. Use a tool only " +
-        "when its purpose matches the user's question. If no available tool can " +
-        "retrieve the required evidence, explain the limitation instead of " +
-        "guessing or using an unrelated tool. " +
+        "Before answering, determine which available tool can retrieve the " +
+        "required evidence. Use SearchSimilarEmails to find relevant emails. " +
+        "If the user asks whether a person worked on other issues, or asks " +
+        "about their broader involvement, you MUST call GetEmailsByContact " +
+        "after the initial topic search, even if the initial results appear " +
+        "relevant. If the user asks how a discussion developed or how an " +
+        "issue was resolved, use GetConversationEmails when a relevant " +
+        "conversation ID is available. " +
 
-        // Evidence requirements
-        "Base factual mailbox answers only on relevant emails retrieved for " +
-        "the current question; never use chat history or prior answers as a " +
-        "substitute for retrieval. If no relevant evidence is retrieved, say so. " +
-        "Do not invent emails, people, dates, decisions, or events. " +
-        "Never claim to have searched emails unless a search tool was executed. " +
+        "For multi-part questions, verify that the retrieved evidence answers " +
+        "each part. After every tool call, reassess what information is still " +
+        "missing and use another relevant tool if it can provide distinct " +
+        "evidence. Do not make unnecessary or repetitive tool calls. " +
 
-        // Accuracy and completeness
-        "Distinguish between findings from retrieved emails and conclusions " +
-        "that cannot be established from the available evidence. " +
-        "Do not claim to summarize all emails unless the retrieval results " +
-        "actually cover the complete requested set. " +
-        "When answering questions about the latest email, respect the tool's " +
-        "sorting and date-filter behavior. " +
+        "Base factual answers only on emails retrieved for the current question. " +
+        "Never invent emails, people, dates, decisions, or events. Do not use " +
+        "chat history or previous answers as a substitute for email retrieval. " +
+        "If evidence is insufficient, clearly state what cannot be established. " +
 
-        // Response style
-        "Answer clearly and concisely. When useful, identify the relevant " +
-        "people, dates, decisions, and supporting email evidence." +
+        "Only use exact conversation IDs and contact identifiers grounded in " +
+        "the user's request or retrieved emails. " +
 
-        // Source citation
-        "Display external-messageids as source citation of emails, for example if " +
-        "an email with external message id 'MSG-1001' is used to answer the query " +
-        "display citation as [MSG-1001]" +
+        "Answer clearly and concisely. Identify relevant people, dates, " +
+        "decisions, and supporting email evidence when useful. " +
 
-        // Multi-step retrieval
-        "For questions involving multiple related facts, decisions, " +
-        "people, or changes over time, evaluate whether the current " +
-        "retrieved evidence covers every part of the question. If " +
-        "important evidence is missing, make another appropriate tool " +
-        "call before answering. Use additional calls when they can " +
-        "retrieve distinct or more complete evidence, such as the " +
-        "surrounding conversation or messages from a relevant contact. " +
-        "Do not make unnecessary calls when the available evidence " +
-        "already supports a complete answer. ";
+        "Display external message IDs as source citations, for example [MSG-1001].";
 
 
     public AgenticEmailService(
@@ -105,7 +87,7 @@ public sealed class AgenticEmailService : IAgenticEmailService
 
         var requestBody = new Dictionary<string, object?>
         {
-            ["model"] = "gemini-3.1-flash-lite",
+            ["model"] = MODEL,
             ["input"] = query,
             ["system_instruction"] = SystemInstruction,
             ["tools"] = EmailToolDefinitions.Tools,
@@ -154,7 +136,21 @@ public sealed class AgenticEmailService : IAgenticEmailService
                         "GEMINI -> AGENT: Tool requested: {ToolName}",
                         currentResult.ToolName);
 
+                    // Log complete arguments generated by Gemini.
+                    var toolArgumentsJson = JsonSerializer.Serialize(
+                        currentResult.ToolArguments,
+                        new JsonSerializerOptions
+                        {
+                            WriteIndented = true
+                        });
+
+                    _logger.LogInformation(
+                        "GEMINI -> AGENT: Tool arguments:\n{ToolArguments}",
+                        toolArgumentsJson);
+
+                    // Keep the convenient search-query log.
                     var rewrittenQuery = GetSearchQuery(currentResult.ToolArguments);
+
                     if (!string.IsNullOrWhiteSpace(rewrittenQuery))
                     {
                         _logger.LogInformation(
@@ -229,7 +225,7 @@ public sealed class AgenticEmailService : IAgenticEmailService
 
             var followUpRequest = new
             {
-                model = "gemini-3.1-flash-lite",
+                model = MODEL,
                 previous_interaction_id = currentInteractionId,
                 system_instruction = SystemInstruction,
                 tools = EmailToolDefinitions.Tools,

@@ -1,6 +1,5 @@
 ﻿using InboxIntelligence.Data;
 using InboxIntelligence.Models;
-using InboxIntelligence.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Pgvector;
 using Pgvector.EntityFrameworkCore;
@@ -73,14 +72,10 @@ namespace InboxIntelligence.Repositories
 
             if (startDate.HasValue) query = query.Where(e => e.SentAt >= startDate.Value);
             if (endDate.HasValue) query = query.Where(e => e.SentAt <= endDate.Value);
+
             if (!string.IsNullOrWhiteSpace(contact))
             {
-                query = query.Where(e =>
-                    _dbContext.ContactEmails.Any(ce =>
-                        ce.EmailId == e.Id &&
-                        EF.Functions.ILike(
-                            ce.EmailAddress,
-                            $"%{contact}%")));
+                query = FilterByContact(query, contact);
             }
 
             var result = await query.OrderBy(e => e.Embedding!.CosineDistance(vector))
@@ -106,14 +101,10 @@ namespace InboxIntelligence.Repositories
 
             if (startDate.HasValue) query = query.Where(e => e.SentAt >= startDate.Value);
             if (endDate.HasValue) query = query.Where(e => e.SentAt <= endDate.Value);
+
             if (!string.IsNullOrWhiteSpace(contact))
             {
-                query = query.Where(e =>
-                    _dbContext.ContactEmails.Any(ce =>
-                        ce.EmailId == e.Id &&
-                        EF.Functions.ILike(
-                            ce.EmailAddress,
-                            $"%{contact}%")));
+                query = FilterByContact(query, contact);
             }
 
             var keywordQuery = query
@@ -150,12 +141,9 @@ namespace InboxIntelligence.Repositories
         public async Task<List<Email>> GetEmailsByContactAsync(string contact, DateTime? startDate, DateTime? endDate, int limit = 50, CancellationToken cancellationToken = default)
         {
             var query = _dbContext.Emails
-                .AsNoTracking()
-                .Where(e => _dbContext.ContactEmails.Any(ce =>
-                    ce.EmailId == e.Id &&
-                    EF.Functions.ILike(
-                        ce.EmailAddress,
-                        $"%{contact}%")));
+                .AsNoTracking();
+
+            query = FilterByContact(query, contact);
 
             if (startDate.HasValue)
                 query = query.Where(e => e.SentAt >= startDate.Value);
@@ -167,6 +155,37 @@ namespace InboxIntelligence.Repositories
                 .OrderByDescending(e => e.SentAt)
                 .Take(limit)
                 .ToListAsync(cancellationToken);
+        }
+
+        private IQueryable<Email> FilterByContact(
+            IQueryable<Email> query,
+            string contact)
+        {
+            var terms = contact.Split(
+                ' ',
+                StringSplitOptions.RemoveEmptyEntries |
+                StringSplitOptions.TrimEntries);
+
+            if (terms.Length == 0)
+                return query.Where(_ => false);
+
+            IQueryable<Email>? matchingEmails = null;
+
+            foreach (var term in terms)
+            {
+                var pattern = $"%{term}%";
+
+                var matches = query.Where(e =>
+                    _dbContext.ContactEmails.Any(ce =>
+                        ce.EmailId == e.Id &&
+                        EF.Functions.ILike(ce.EmailAddress, pattern)));
+
+                matchingEmails = matchingEmails == null
+                    ? matches
+                    : matchingEmails.Union(matches);
+            }
+
+            return matchingEmails!;
         }
     }
 }
