@@ -6,6 +6,12 @@ It uses **Retrieval-Augmented Generation (RAG)** with PostgreSQL and pgvector fo
 
 **V2 — Agentic Retrieval:** Extends the retrieval pipeline with Gemini-powered tool orchestration. The model can dynamically select from allowlisted email tools, inspect retrieved evidence, and perform up to three tool executions per request before producing a final answer. Polly-based HTTP resilience retries transient failures when communicating with Gemini.
 
+## Example Agent Runs
+
+- **Multi-tool investigation:** Combines similar-email search, contact-wide retrieval, and conversation context to explain a person's project contributions with source citations.
+- **Broad mailbox question:** Summarizes recent updates across multiple active projects from the stored emails.
+- **Out-of-scope question:** Declines to answer questions unrelated to the mailbox without invoking retrieval tools.
+
 ## V2 — Agentic Retrieval Flow
 
 ```mermaid
@@ -64,4 +70,3 @@ All 10 answerable questions achieved Recall@5 = 1.00 and MRR = 1.00 on this data
 ### Scope and limitations
 
 These results describe performance on the current 12-question golden dataset; they are not a guarantee of accuracy on arbitrary mailboxes or unseen questions. The two unanswerable questions have not yet been evaluated for abstention behavior, and answer correctness, faithfulness, and citation accuracy are separate end-to-end RAG evaluation dimensions.
-
